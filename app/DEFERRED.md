@@ -295,3 +295,22 @@ lewat F-27, owner pertama lewat F-28 - satu transaksi.
 | D-48 | **Provisioning tidak idempotent dan tidak dapat dilanjutkan.** ADR-001 §3.6 menuntut provisioning idempotent; yang ada sekarang adalah satu transaksi yang gagal seluruhnya atau berhasil seluruhnya. | Kegagalan berarti mengulang dari awal - dan itu AMAN (tidak ada tenant tertinggal), tetapi bukan yang dituntut ADR. Idempotensi baru diperlukan bila provisioning kelak menyentuh hal di luar transaksi database (mis. object storage atau layanan lain), dan saat itu ia harus dirancang, bukan ditambal. | Sebelum provisioning menyentuh sistem di luar database |
 | D-49 | **Owner pertama tidak dimintai persetujuan.** Konsekuensi langsung pengecualian ADR-002 §2.3a. | Seseorang dapat menjadi owner sebuah tenant tanpa pernah menyetujuinya; yang membatasi dampaknya hanya audit di kedua sisi dan sifat sekali-pakai per tenant. Bila kelak persetujuan dituntut (Legal/DPO, atau produk yang menjual tenant ke pihak luar), jalurnya sudah ada: undangan owner dengan status tenant `PROVISIONING` sampai diterima. | Sebelum data nyata, atau saat Legal/DPO meninjau |
 | D-50 | **Kunci tenant dibuat hanya versi 1, dan tidak ada rotasi.** Sama dengan D-15, tetapi sekarang menyentuh lebih banyak tenant: setiap tenant baru lahir dengan `key_version = 1` selamanya. | Tidak ada jalan mengganti kunci tenant tanpa menulis ulang seluruh ciphertextnya. F-24/F-25 sudah mendukung banyak versi, jadi yang belum ada adalah alur rotasinya - bukan skemanya. | Bersama D-15 |
+
+## Catatan rate limit per IP klien (2026-09-30)
+
+**LUNAS sebagian:** password spraying (satu password dicoba ke banyak email) kini diperlambat.
+Lapis per email (slice 6) tidak dapat melakukannya, karena setiap email hanya mendapat satu
+kegagalan. Lapis kedua menghitung kegagalan per IP klien: `DEMO_LOGIN_IP_MAX_FAILURES`
+(bawaan 30) dalam jendela yang sama dengan lapis per email. BFF meneruskan IP lewat header
+`x-demo-client-ip`, dan API hanya mempercayainya dari `DEMO_TRUSTED_PROXIES` (bawaan loopback).
+Dibuktikan `api/test/ratelimit-ip.test.ts` (5 kasus), `web/test/ratelimit-ip.spec.ts` (BFF benar-benar meneruskan IP), dan mutasi yang tertangkap.
+
+Batas global yang mengunci SEMUA login sengaja tidak dibuat: satu penyerang dapat memakainya
+untuk mengunci semua orang.
+
+| # | Utang | Akibatnya sekarang | Ditagih |
+|---|---|---|---|
+| D-51 | **Penghitung per IP ada di memori proses API.** Ini pengecualian terhadap alasan lapis pertama ("restart untuk membuka kunci bukan sifat yang diinginkan"), diambil karena versi database menuntut kolom baru di `audit_logs` dan perubahan fungsi `auth.*` terdaftar (Lampiran A). | Hitungan hilang saat API dimulai ulang, dan TIDAK dibagi antar-instance: dengan N instance, penyerang mendapat N kali kuota. Lapis per email tidak terdampak (tetap di database). | Sebelum API dijalankan lebih dari satu instance |
+| D-52 | **IP klien hanya dapat dipercaya bila web berada di balik proxy.** Next mengisi `x-forwarded-for` dengan alamat socket hanya bila header itu belum ada; kiriman klien dibiarkan. `WEB_TRUSTED_PROXY_HOPS` (bawaan 0) menentukan posisi yang dipercaya. | Web yang diekspos langsung (bawaan, pengembangan) memungkinkan klien memilih IP-nya sendiri: batas per IP dapat diputari, dan kuota IP orang lain dapat dihabiskan. Batas per email tetap berlaku. | Sebelum web dapat dijangkau dari luar: pasang proxy dan setel `WEB_TRUSTED_PROXY_HOPS` |
+| D-53 | **Jalur penerimaan undangan tidak diuji untuk batas per IP.** Kodenya memakai penghitung yang sama dengan login, tetapi tes per IP hanya melewati `POST /auth/login`. | Mutasi yang menghapus pencatatan kegagalan di `invitation.service.ts` akan lolos. | Bersama tes undangan berikutnya |
+| D-54 | **Salah konfigurasi mengubah batas per IP menjadi kunci GLOBAL.** Bila API tidak menerima `x-demo-client-ip` dari proxy tepercaya - web berjalan di host lain yang alamatnya tidak ada di `DEMO_TRUSTED_PROXIES`, atau BFF versi lama yang tidak meneruskannya - semua pengguna terhitung sebagai SATU IP: alamat server web. | `DEMO_LOGIN_IP_MAX_FAILURES` kegagalan dari siapa pun mengunci login SEMUA orang selama jendela berjalan. Terbukti saat mutasi yang menghapus penerusan IP dari halaman login: 37 tes browser lain ikut gagal. Setiap deployment web di host terpisah WAJIB menyetel `DEMO_TRUSTED_PROXIES` di API ke alamat web. | Sebelum web dan API dipisah host |

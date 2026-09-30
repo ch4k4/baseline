@@ -9,6 +9,7 @@ import {
 import { AuthService, LoginResult } from './auth.service.js';
 import { Authenticated, Public } from '../authz/access.decorator.js';
 import { ResolvedSession } from './pre-context.repository.js';
+import { clientIpOf } from './client-ip.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -34,12 +35,12 @@ export class AuthController {
 
   @Post('login')
   @Public()
-  async login(@Body() body: unknown): Promise<LoginResult> {
+  async login(@Req() req: any, @Body() body: unknown): Promise<LoginResult> {
     const { email, password } = (body ?? {}) as Record<string, unknown>;
     if (typeof email !== 'string' || typeof password !== 'string' || !email || !password) {
       throw new BadRequestException('email dan password wajib diisi.');
     }
-    return this.auth.login(email, password);
+    return this.auth.login(email, password, clientIpOf(req));
   }
 
   /**

@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { apiFetch, isTimeout, PESAN_LAMBAT } from '@/lib/api-fetch';
+import { clientIpHeader } from '@/lib/client-ip';
 import {
   TICKET_COOKIE,
   ticketCookieOptions,
@@ -33,7 +34,7 @@ async function login(formData: FormData) {
   try {
     res = await apiFetch('/api/v1/auth/login', {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', ...(await clientIpHeader()) },
       body: JSON.stringify({ email, password }),
     });
   } catch (error) {

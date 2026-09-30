@@ -106,10 +106,10 @@ export class AuthService {
     };
   }
 
-  async login(email: string, password: string): Promise<LoginResult> {
+  async login(email: string, password: string, clientIp: string | null = null): Promise<LoginResult> {
     // Pemeriksaan batas percobaan terjadi SEBELUM verifikasi password, supaya
     // penyerang tidak bisa memakai waktu verifikasi sebagai kanal informasi.
-    await this.rateLimit.assertAllowed(email);
+    await this.rateLimit.assertAllowed(email, clientIp);
 
     const identity = await this.preContext.findIdentityForLogin(
       await this.crypto.userEmailIndex(email),
@@ -123,6 +123,7 @@ export class AuthService {
         identifier: email,
         detail: { reason: 'IDENTITY_NOT_FOUND' },
       });
+      this.rateLimit.recordFailure(clientIp);
       throw new UnauthorizedException(GENERIC_FAILURE);
     }
 
@@ -135,6 +136,7 @@ export class AuthService {
         identifier: email,
         detail: { reason: passwordOk ? 'IDENTITY_NOT_ACTIVE' : 'BAD_PASSWORD' },
       });
+      this.rateLimit.recordFailure(clientIp);
       throw new UnauthorizedException(GENERIC_FAILURE);
     }
 
@@ -150,6 +152,7 @@ export class AuthService {
         identifier: email,
         detail: { reason: 'NO_ACTIVE_CONTEXT' },
       });
+      this.rateLimit.recordFailure(clientIp);
       throw new UnauthorizedException(GENERIC_FAILURE);
     }
 
