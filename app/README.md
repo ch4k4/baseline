@@ -12,6 +12,7 @@ Folder ini berisi **kode** demo e2e lokal. Folder ini bukan dokumen normatif.
 |---|---|
 | Memasang dan menjalankan di Windows (PostgreSQL 18, Node, tiga jendela PowerShell) | [SETUP.md](SETUP.md) |
 | Menjalankan **seluruh** verifikasi dengan satu perintah, satu putusan | `scripts/verify.ps1` (Windows) / `scripts/verify.sh`; angka yang dijaga di `scripts/verify-expected.json` |
+| Verifikasi yang sama di CI, pada setiap pull request dan push ke `main` | `../.github/workflows/verify.yml` (Node.js 24, PostgreSQL 18.6) |
 | Apa yang sengaja belum dikerjakan, dan kapan ditagih | [DEFERRED.md](DEFERRED.md) |
 | Bukti bahwa tes benar-benar menguji (mutation test per slice) | [AUDIT.md](AUDIT.md) |
 | API: endpoint, unit of work, enkripsi, undangan | [api/README.md](api/README.md) |

@@ -57,10 +57,26 @@ do_create() {
 # hanya yang belum tercatat di ledger `schema_migrations`, memeriksa checksum berkas
 # yang sudah dipasang, dan menolak nomor migrasi ganda. Satu implementasi dipakai
 # db.sh dan db.ps1 - logika yang ditulis dua kali akan berbeda dua kali.
+# Klien Prisma TIDAK disimpan di repo (api/.gitignore: src/generated/), tetapi `tsc`
+# membangun seluruh api/ - termasuk berkas yang mengimpornya. Pada clone baru
+# pemasang migrasi karena itu gagal dibangun dengan TS2307 sebelum satu migrasi pun
+# dipasang. Dibuat di sini bila belum ada; bila sudah ada, dibiarkan (do_identities
+# tetap membuatnya ulang seperti biasa).
+ensure_prisma_client() {
+  local api="$ROOT/../api"
+  [ -f "$api/src/generated/prisma/client.ts" ] && return 0
+  if [ "${DEMO_SKIP_PRISMA_GENERATE:-0}" = "1" ]; then
+    echo "klien Prisma belum ada di api/src/generated/prisma - DEMO_SKIP_PRISMA_GENERATE=1 hanya dapat dipakai setelah generate pernah berjalan" >&2
+    exit 2
+  fi
+  step "generate klien Prisma (belum ada; hasil generate tidak disimpan di repo)"
+  (cd "$api" && node node_modules/prisma/build/index.js generate --no-hints)
+}
+
 do_migrate() {
   local api="$ROOT/../api"
-  # Pemasang adalah TypeScript, jadi ia dibangun lebih dulu. Hanya `tsc`, bukan
-  # `prisma generate`: klien Prisma ada di repo, dan pemasang tidak memerlukannya.
+  # Pemasang adalah TypeScript, jadi ia dibangun lebih dulu.
+  ensure_prisma_client
   step "bangun pemasang migrasi"
   ( cd "$api" && node node_modules/typescript/bin/tsc -p tsconfig.json )
   step "pasang migrasi lewat ledger (${1:-migrate})"
@@ -81,14 +97,14 @@ do_identities() {
   [ -f "$api/node_modules/typescript/bin/tsc" ] && [ -f "$api/node_modules/prisma/build/index.js" ] || { echo "jalankan dulu: (cd app/api && npm install)" >&2; exit 2; }
   # `prisma generate` mengunduh engine dari binaries.prisma.sh. Di lingkungan yang
   # egress-nya menutup host itu (mis. container CI), unduhan gagal dan reset berhenti
-  # di tengah - padahal klien Prisma SUDAH ada di repo (api/src/generated/prisma) dan
-  # tidak berubah oleh langkah ini selama skema Prisma tidak diubah.
+  # di tengah - padahal klien Prisma yang SUDAH dibuat sebelumnya (api/src/generated/prisma,
+  # tidak disimpan di repo) tidak berubah oleh langkah ini selama skema Prisma tidak diubah.
   #
   # DEMO_SKIP_PRISMA_GENERATE=1 melewatinya, dan mengatakannya dengan keras. Ini
   # bukan mode "cepat": memakainya saat skema Prisma BERUBAH berarti seluruh tes
   # berjalan di atas klien yang basi.
   if [ "${DEMO_SKIP_PRISMA_GENERATE:-0}" = "1" ]; then
-    step "LEWATI generate klien Prisma (DEMO_SKIP_PRISMA_GENERATE=1; klien dari repo dipakai apa adanya)"
+    step "LEWATI generate klien Prisma (DEMO_SKIP_PRISMA_GENERATE=1; klien yang ada dipakai apa adanya)"
   else
     step "generate klien Prisma (skema tetap dari db/migrations)"
     (cd "$api" && node node_modules/prisma/build/index.js generate --no-hints)
