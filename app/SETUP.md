@@ -345,17 +345,23 @@ wajib sudah dijalankan setelah kode web berubah.
 ## Catatan tentang `DEMO_JWT_SECRET`
 
 Sejak slice 7 access token adalah JWT bertanda tangan. Di lokal Anda **tidak
-perlu menyetel apa pun**: kalau `DEMO_JWT_SECRET` kosong, API memakai kunci
-pengembangan bawaan.
+perlu menyetel apa pun**: `db.ps1 reset` (seed) membuat 32 byte acak di
+`%USERPROFILE%\.saas-demo\jwt-dev.key`, di sebelah KEK, dan API memakainya bila
+`DEMO_JWT_SECRET` kosong. Tidak ada kunci bawaan yang tertulis di kode.
 
-Dua hal yang berlaku begitu ini bukan lagi demo lokal:
+Aturannya sama di mana pun, tanpa bergantung pada `NODE_ENV`:
 
-- Di `NODE_ENV=production` API **menolak start** tanpa `DEMO_JWT_SECRET`. Itu
-  disengaja. Kunci acak yang dibuat sendiri saat start berarti setiap restart
-  mencabut semua sesi, dan setiap instance menolak token instance lain - gejala
-  yang muncul sebagai "kadang-kadang pengguna terlempar keluar".
-- Mengganti kunci mencabut seluruh sesi yang sedang berjalan. Belum ada rotasi
-  kunci; itu tercatat sebagai utang di `DEFERRED.md`.
+- `DEMO_JWT_SECRET` diisi: dipakai, dan **minimal 32 byte** - yang lebih pendek
+  membuat API menolak start.
+- Kosong: dipakai berkas di atas (atau jalur di `DEMO_JWT_SECRET_FILE`).
+- Keduanya tidak ada: API **menolak start** dan menyebut obatnya. Kunci acak yang
+  dibuat sendiri saat start sengaja tidak dipakai: setiap restart akan mencabut
+  semua sesi, dan setiap instance menolak token instance lain - gejala yang
+  muncul sebagai "kadang-kadang pengguna terlempar keluar".
+
+Begitu ini bukan lagi demo lokal, isi `DEMO_JWT_SECRET` dengan kunci acak yang
+sama di setiap instance API. Mengganti kunci mencabut seluruh sesi yang sedang
+berjalan; belum ada rotasi kunci, dan itu tercatat sebagai utang di `DEFERRED.md`.
 
 ---
 

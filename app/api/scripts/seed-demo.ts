@@ -2,6 +2,7 @@ import { Client } from 'pg';
 import { PasswordService } from '../src/auth/password.service.js';
 import { failWithExplanation } from '../src/database/preflight.js';
 import { ensureKek, kekPath, loadKek } from '../src/crypto/kek-source.js';
+import { ensureJwtSecret } from '../src/auth/jwt-secret-source.js';
 import { newDek, wrapDek } from '../src/crypto/envelope.js';
 import { FieldCrypto, FIELDS } from '../src/crypto/field-crypto.js';
 import { TicketService } from '../src/auth/ticket.service.js';
@@ -169,6 +170,11 @@ async function main(): Promise<void> {
     kek = k.kek;
     console.log(k.created ? `  -> KEK demo baru dibuat di ${kekPath()}` : `  -> KEK demo: ${kekPath()}`);
   }
+
+  // Kunci penanda tangan token, di sebelah KEK. Dibuat sekali; yang sudah ada
+  // tidak pernah ditimpa (menimpanya mencabut semua sesi) - jwt-secret-source.ts.
+  const jwtBaru = ensureJwtSecret();
+  if (jwtBaru) console.log(`  -> kunci token demo baru dibuat di ${jwtBaru}`);
 
   try {
     await db.query('BEGIN');

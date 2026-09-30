@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { createHmac, timingSafeEqual, randomUUID } from 'node:crypto';
+import { loadJwtSecret } from './jwt-secret-source.js';
 
 /**
  * JWT HS256, ditulis langsung di atas node:crypto.
@@ -50,16 +51,9 @@ export class JwtService {
   readonly ttlSeconds: number;
 
   constructor() {
-    const raw = process.env.DEMO_JWT_SECRET;
-
-    if (!raw && process.env.NODE_ENV === 'production') {
-      // Gagal saat start, bukan saat token pertama diterbitkan. Rahasia acak
-      // yang dibuat otomatis di produksi berarti setiap restart mencabut semua
-      // sesi dan setiap instance menolak token instance lain.
-      throw new Error('DEMO_JWT_SECRET wajib diisi di produksi.');
-    }
-
-    this.secret = Buffer.from(raw ?? 'kunci-pengembangan-lokal-jangan-dipakai-di-produksi', 'utf8');
+    // Tidak ada kunci bawaan: DEMO_JWT_SECRET atau berkas buatan seed, selain itu
+    // gagal saat start - lihat jwt-secret-source.ts.
+    this.secret = loadJwtSecret();
     this.ttlSeconds = Number(process.env.DEMO_ACCESS_TTL_SECONDS ?? 900);
   }
 

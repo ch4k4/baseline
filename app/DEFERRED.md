@@ -28,6 +28,11 @@ Supaya tidak dikira selesai padahal belum:
 - **`DEMO_JWT_SECRET` masih satu kunci statis.** Tidak ada rotasi kunci, dan
   tidak ada `kid` di header token. Merotasi kunci hari ini berarti mencabut
   semua sesi sekaligus. Ditagih bersama keputusan KMS.
+  *Sebagian lunas 2026-09-30:* kunci bawaan yang tertulis di kode sudah dihapus.
+  Tanpa `DEMO_JWT_SECRET` (minimal 32 byte), API memakai 32 byte acak dari berkas
+  buatan seed di sebelah KEK, dan menolak start bila keduanya tidak ada - tanpa
+  bergantung pada `NODE_ENV` (`src/auth/jwt-secret-source.ts`,
+  `test/jwt-secret.test.ts`). Rotasi dan `kid` tetap belum ada.
 - **Tidak ada daftar cabut per-`jti`.** Pencabutan bekerja lewat baris session,
   bukan lewat token. Itu memadai selama guard tetap memeriksa session setiap
   permintaan - dan berhenti memadai pada hari seseorang "mengoptimalkan"
@@ -46,7 +51,7 @@ data sudah selesai":
 | ~~D-14~~ | **TERVERIFIKASI 2026-09-22 (`icacls`, mesin target).** Berkas KEK dan foldernya hanya memberi akses ke `NT AUTHORITY\SYSTEM`, `BUILTIN\Administrators`, dan akun pengembang (`INDONESIARE\rusli`); tidak ada `Users`, `Authenticated Users`, maupun `Everyone`. Syarat C2 terpenuhi. | Risiko yang diterima: anggota grup Administrators - pada mesin domain termasuk admin TI domain - tetap dapat membaca KEK. Layak untuk data synthetic, tidak untuk data nyata. | SSOT DP sec.9.2 |
 | D-15 | **Rotasi kunci belum ada.** Kolom `*_key_version` dan `crypto_keys.key_version` sudah siap, tapi tidak ada perintah rotasi maupun re-enkripsi, dan cache kunci tanpa TTL (rotasi menuntut restart). | Tanpa rotasi, kunci yang bocor tidak dapat diganti tanpa membangun ulang data. | SSOT DP sec.9, sec.20 |
 | D-16 | **Hash token (refresh, tiket) tanpa kunci.** SSOT sec.8.3 meminta keyed hash; implementasi memakai SHA-256 atas 32 byte acak. | Risikonya kecil karena inputnya berentropi tinggi (tidak dapat ditebak), tapi tetap selisih terhadap SSOT. | SSOT DP sec.8.3 |
-| D-17 | **Tenant baru tidak mendapat kunci.** Hanya seed demo yang membuat DEK tenant. Tenant yang di-provision kemudian akan gagal `KeyMissingError` saat anggotanya dibaca. | Harus diselesaikan bersama provisioning tenant (DEMO-0106). | DEMO-0106 |
+| ~~D-17~~ | ~~Tenant baru tidak mendapat kunci~~ | **LUNAS 2026-09-29 (fondasi langkah 3)** — `POST /platform/tenants` membuat kunci tenant baru lewat F-26 dalam transaksi provisioning; lihat catatan fondasi langkah 3 di bawah | selesai |
 | D-18 | **Pencarian nama (token kata) belum ada.** Daftar anggota diurutkan setelah dekripsi di memori; tidak ada pencarian. | Memadai untuk tenant kecil; halaman besar butuh paginasi dan search token (SSOT sec.8.4). | SSOT DP sec.8.4 |
 | D-19 | **Register hanya mencakup kolom database skema public.** Log, cache, payload antrean, dan ekspor belum tercatat. | SSOT sec.13 mencakup semua penyimpanan, bukan hanya tabel. | SSOT DP sec.13 |
 
@@ -153,7 +158,7 @@ Yang kini berlaku:
 | # | Celah | Kenapa penting | Ditagih di |
 |---|---|---|---|
 | ~~D-24~~ | **LUNAS slice 11 (2026-09-22).** Endpoint penulis role kini ada, dan setiap jalannya menegakkan anti-eskalasi (hanya role/permission yang seluruhnya dipegang pelaku), larangan mengubah diri sendiri, dan perlindungan terkunci-dari-tenant; dibuktikan tes API slice 11 #6, #7, #7b, #8. Database tetap tidak mengenal pelaku - lapis ini sengaja di aplikasi. | - | selesai |
-| D-25 | **Role sistem hanya dibuat seed.** Tenant yang di-provision kemudian tidak punya `tenant_owner` sehingga tidak ada yang dapat mengelolanya. | Satu paket dengan D-17 (kunci tenant baru) di provisioning tenant (DEMO-0106). | DEMO-0106 |
+| ~~D-25~~ | ~~Role sistem hanya dibuat seed~~ | **LUNAS 2026-09-29 (fondasi langkah 3)** — role sistem tenant baru dibuat dari template lewat F-27 dalam transaksi provisioning; lihat catatan fondasi langkah 3 di bawah | selesai |
 | ~~D-26~~ | ~~Nama role adalah teks bebas tenant, dicatat DP-0~~ | **LUNAS 2026-09-26** — tetap DP-0 dan dinyatakan label konfigurasi, dengan penegakan di database: CHECK `roles_name_label_ck` menolak alamat email dan deretan 8+ digit (migrasi 0017); API menolak lebih dulu dengan pesan; layar pembuatan role memperingatkan; entri Data Field Register `roles.name` dilengkapi | selesai |
 
 Belum ada: halaman profil (DEMO-0206). Pengguna `tenant_user` (hanya `profile.*`)
