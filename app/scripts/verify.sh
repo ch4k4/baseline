@@ -56,7 +56,10 @@ SQL_BERKAS_HARAP=$(harap sqlFiles)
 API_HARAP=$(harap api)
 BROWSER_HARAP=$(harap browser)
 
-LOG="$(mktemp -d)"
+# VERIFY_LOG_ROOT (opsional) menentukan INDUK folder log - dipakai CI supaya log dapat
+# diunggah saat MERAH. Bukan TMPDIR: TMPDIR ikut dipakai Chromium dan Next, dan
+# membelokkannya mengubah lebih dari sekadar tempat log.
+LOG="$(mktemp -d "${VERIFY_LOG_ROOT:-${TMPDIR:-/tmp}}/verify.XXXXXX")"
 GAGAL=()
 lapor() { printf '%-28s %s\n' "$1" "$2"; }
 

@@ -265,6 +265,7 @@ export class InvitationService {
     token: string,
     password: string,
     rawDisplayName: string,
+    clientIp: string | null = null,
   ): Promise<{ status: 'JOINED'; tenantName: string }> {
     const displayName = rawDisplayName.normalize('NFC').trim();
     if (!displayName || displayName.length > MAX_DISPLAY_NAME) {
@@ -308,7 +309,7 @@ export class InvitationService {
 
     // Satu keranjang percobaan dengan login: menebak password lewat halaman
     // undangan dikunci oleh batas yang sama.
-    await this.rateLimit.assertAllowed(email);
+    await this.rateLimit.assertAllowed(email, clientIp);
 
     const identity = await this.preContext.findIdentityForLogin(globalBi);
     let userId: string;
@@ -324,6 +325,7 @@ export class InvitationService {
           identifier: email,
           detail: { reason: ok ? 'IDENTITY_NOT_ACTIVE' : 'BAD_PASSWORD', via: 'invitation' },
         });
+        this.rateLimit.recordFailure(clientIp);
         throw new UnauthorizedException(BAD_CREDENTIAL);
       }
       userId = identity.user_id;

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { apiFetch, isTimeout, PESAN_LAMBAT } from '@/lib/api-fetch';
+import { clientIpHeader } from '@/lib/client-ip';
 
 /**
  * Halaman penerimaan undangan (D-09). Publik: penerima belum tentu punya akun.
@@ -37,7 +38,7 @@ async function terima(token: string, formData: FormData) {
   try {
     res = await apiFetch('/api/v1/invitations/accept', {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', ...(await clientIpHeader()) },
       body: JSON.stringify({ token, password, displayName }),
     });
   } catch (error) {

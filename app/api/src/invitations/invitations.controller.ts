@@ -12,6 +12,7 @@ import { Public, RequirePermission } from '../authz/access.decorator.js';
 import { uuidList } from '../admin/admin-rules.js';
 import { ResolvedSession } from '../auth/pre-context.repository.js';
 import { InvitationService } from './invitation.service.js';
+import { clientIpOf } from '../auth/client-ip.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 // Token = 32 byte acak base64url (43 karakter). Bentuk lain ditolak di tepi.
@@ -74,8 +75,10 @@ export class InvitationsController {
   @Post('accept')
   @HttpCode(200)
   @Public()
-  async accept(@Body() body: unknown) {
+  async accept(@Req() req: any, @Body() body: unknown) {
     const b = (body ?? {}) as Record<string, unknown>;
-    return this.invitations.accept(token(b.token), str(b.password, 'password', 200), str(b.displayName, 'displayName', 400));
+    return this.invitations.accept(
+      token(b.token), str(b.password, 'password', 200), str(b.displayName, 'displayName', 400), clientIpOf(req),
+    );
   }
 }

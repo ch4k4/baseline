@@ -12,6 +12,7 @@ Folder ini berisi **kode** demo e2e lokal. Folder ini bukan dokumen normatif.
 |---|---|
 | Memasang dan menjalankan di Windows (PostgreSQL 18, Node, tiga jendela PowerShell) | [SETUP.md](SETUP.md) |
 | Menjalankan **seluruh** verifikasi dengan satu perintah, satu putusan | `scripts/verify.ps1` (Windows) / `scripts/verify.sh`; angka yang dijaga di `scripts/verify-expected.json` |
+| Verifikasi yang sama di CI, pada setiap pull request dan push ke `main` | `../.github/workflows/verify.yml` (Node.js 24, PostgreSQL 18.6) |
 | Apa yang sengaja belum dikerjakan, dan kapan ditagih | [DEFERRED.md](DEFERRED.md) |
 | Bukti bahwa tes benar-benar menguji (mutation test per slice) | [AUDIT.md](AUDIT.md) |
 | API: endpoint, unit of work, enkripsi, undangan | [api/README.md](api/README.md) |
@@ -72,6 +73,7 @@ Sejak D-40, `reset` mematok zona waktu database ke `Asia/Jakarta` - BUKAN UTC, d
 | Fondasi 3 | Provisioning tenant (migrasi 0023): tenant baru mendapat kunci enkripsi (D-17) dan role sistem dari template (D-25) dalam satu transaksi; owner pertama lewat pengecualian terkontrol ADR-002 §2.3a |
 | Fondasi 4 | Verifikator satu perintah (`scripts/verify.sh` / `scripts/verify.ps1`): menjalankan SQL, API, `lint:guc`, dan browser, lalu membandingkan jumlahnya dengan `scripts/verify-expected.json`. Kurang MAUPUN lebih dari angka yang dijaga adalah MERAH |
 | D-20, ESM, D-12 | Batas waktu web ke API; `api/` sebagai ES module; `api/` di atas Prisma |
+| Rate limit per IP | Lapis kedua pembatasan login: kegagalan dihitung per IP klien (password spraying), IP diteruskan BFF lewat `x-demo-client-ip` dan dipercaya hanya dari `DEMO_TRUSTED_PROXIES`; penghitung di memori (D-51, D-52, D-53) |
 
 Setiap slice dinyatakan hijau hanya setelah kodenya **dirusak dengan sengaja** dan tesnya terbukti menangkap. Rincian dan mutasi yang lolos ada di [AUDIT.md](AUDIT.md). Aturan itu berlaku juga untuk verifikatornya sendiri: `mutations/verify.sh` merusak `scripts/verify.sh` dan `scripts/verify.ps1` dalam 9 dan 10 cara, karena penjaga yang tidak pernah terbukti MERAH bukan penjaga.
 

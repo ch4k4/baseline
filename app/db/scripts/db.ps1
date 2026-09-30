@@ -191,8 +191,20 @@ function Do-Migrate {
   $api = Join-Path (Split-Path $Root -Parent) 'api'
   Push-Location $api
   try {
-    # Hanya tsc, bukan prisma generate: klien Prisma ada di repo dan pemasang tidak
-    # memerlukannya.
+    # Klien Prisma TIDAK disimpan di repo (api/.gitignore: src/generated/), tetapi
+    # tsc membangun seluruh api/ - termasuk berkas yang mengimpornya. Pada clone
+    # baru pemasang karena itu gagal dibangun (TS2307) sebelum satu migrasi pun
+    # dipasang. Dibuat di sini bila belum ada; Do-Identities tetap membuatnya ulang.
+    $client = Join-Path (Join-Path (Join-Path 'src' 'generated') 'prisma') 'client.ts'
+    if (-not (Test-Path $client)) {
+      if ($env:DEMO_SKIP_PRISMA_GENERATE -eq '1') {
+        throw 'klien Prisma belum ada di api/src/generated/prisma - DEMO_SKIP_PRISMA_GENERATE=1 hanya dapat dipakai setelah generate pernah berjalan'
+      }
+      Step 'generate klien Prisma (belum ada; hasil generate tidak disimpan di repo)'
+      & node (Join-Path (Join-Path (Join-Path 'node_modules' 'prisma') 'build') 'index.js') generate --no-hints
+      Assert-Ok 'generate klien Prisma'
+    }
+
     Step 'bangun pemasang migrasi'
     & node node_modules/typescript/bin/tsc -p tsconfig.json
     Assert-Ok 'bangun pemasang migrasi'

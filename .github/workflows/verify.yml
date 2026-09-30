@@ -1,0 +1,89 @@
+# Menjalankan verifikator satu perintah (app/scripts/verify.sh) - reset database,
+# SQL, API, lint:guc, dan browser - lalu membandingkan jumlah kasusnya dengan
+# app/scripts/verify-expected.json. Putusannya milik skrip itu, bukan workflow ini:
+# workflow hanya menyiapkan mesin yang bersih.
+#
+# Versi mengikuti Infrastructure SSOT sec.3: Node.js 24, PostgreSQL 18.6.
+name: verify
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:18.6
+        env:
+          # Hanya untuk database sekali pakai di runner ini; tidak ada data nyata.
+          POSTGRES_PASSWORD: ci-superuser
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      DEMO_DB_SUPER_PASSWORD: ci-superuser
+      DEMO_DB_HOST: 127.0.0.1
+      DEMO_DB_PORT: '5432'
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: |
+            app/api/package-lock.json
+            app/web/package-lock.json
+
+      # psql untuk db.sh; bc dan python3 dipakai verify.sh untuk menjumlah dan
+      # membaca angka yang dijaga.
+      - name: Pasang klien PostgreSQL dan alat bantu
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q postgresql-client bc python3
+
+      - name: Dependensi API
+        working-directory: app/api
+        run: npm ci --no-audit --no-fund
+
+      - name: Dependensi web
+        working-directory: app/web
+        run: npm ci --no-audit --no-fund
+
+      - name: Chromium untuk Playwright
+        working-directory: app/web
+        run: npx playwright install --with-deps chromium
+
+      # VERIFY_LOG_ROOT menaruh folder log verify.sh di tempat yang diketahui,
+      # supaya log dapat diunggah bila putusannya MERAH.
+      - name: Verifikasi (satu perintah, satu putusan)
+        run: |
+          mkdir -p "$RUNNER_TEMP/verify"
+          VERIFY_LOG_ROOT="$RUNNER_TEMP/verify" app/scripts/verify.sh
+
+      - name: Unggah log verifikasi
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verify-logs
+          path: ${{ runner.temp }}/verify
+          retention-days: 7

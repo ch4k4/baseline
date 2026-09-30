@@ -1,7 +1,7 @@
 ---
 title: "SaaS Multi-Tenant Multi-Industry Baseline — README"
 document_id: "BASELINE-README"
-edition: "2.16 (consolidated final)"
+edition: "2.17 (consolidated final)"
 status: "Consolidated Baseline — Proposed; specialist approval pending"
 last_updated: "2026-09-27"
 purpose: "Pintu masuk dokumentasi: daftar dokumen, urutan baca, aturan perubahan, keputusan terbuka, riwayat, dan ringkasan review"
@@ -9,7 +9,7 @@ purpose: "Pintu masuk dokumentasi: daftar dokumen, urutan baca, aturan perubahan
 
 # SaaS Multi-Tenant Multi-Industry Baseline
 
-Folder ini berisi baseline arsitektur dan delivery untuk aplikasi SaaS multi-tenant lintas industri (Next.js + NestJS + Prisma + PostgreSQL). Dokumen dikelola satu file per dokumen tanpa akhiran versi; `edition` dinaikkan per dokumen sesuai §4. Edisi saat ini: `README.md` **2.16**; `ARCHITECTURE_DECISIONS.md`, `INFRASTRUCTURE_SSOT.md`, dan `SAAS_DEMO_FOUNDATION_SSOT.md` **2.10**; `SAAS_DEMO_SPRINT_PLAN.md` dan `DATA_PROTECTION_ENCRYPTION_SSOT.md` **2.1**; `GENERAL_FEATURE_BASE_SSOT.md` masih **2.0** karena tidak ada perubahan normatif.
+Folder ini berisi baseline arsitektur dan delivery untuk aplikasi SaaS multi-tenant lintas industri (Next.js + NestJS + Prisma + PostgreSQL). Dokumen dikelola satu file per dokumen tanpa akhiran versi; `edition` dinaikkan per dokumen sesuai §4. Edisi saat ini: `README.md` **2.17**; `ARCHITECTURE_DECISIONS.md`, `INFRASTRUCTURE_SSOT.md`, dan `SAAS_DEMO_FOUNDATION_SSOT.md` **2.10**; `SAAS_DEMO_SPRINT_PLAN.md` dan `DATA_PROTECTION_ENCRYPTION_SSOT.md` **2.1**; `GENERAL_FEATURE_BASE_SSOT.md` masih **2.0** karena tidak ada perubahan normatif.
 
 > **Status penting:** "final" berarti **struktur dokumen final dan konsisten**, bukan disetujui. Seluruh keputusan rinci masih **Proposed** sampai Technical, Security/Privacy, Operations, dan Legal/DPO memberi sign-off. Dokumen ini bukan bukti kepatuhan UU PDP maupun production readiness.
 
@@ -90,6 +90,7 @@ Folder `_archive/` menyimpan seluruh versi sebelumnya dan dua laporan review. Ar
 | **2.15** | 2026-09-28 | **Arah baseline ditetapkan: fondasi beberapa produk, database masing-masing** (keputusan pemilik proyek). ADR 2.9 §3.11 mencatat keputusan itu beserta lima open decision yang belum boleh terbentuk diam-diam - identitas lintas produk, audit lintas produk, namespace permission per komponen, entitlement modul per tenant, dan cara distribusi baseline. Dua lubang fondasi ditutup: (1) ADR 2.8 - Lampiran A menjadi DAPAT DITEGAKKAN lewat `api/test/register.test.ts` + `db/register.json` + nomor F-xx sebagai COMMENT di database, yang langsung menemukan sembilan penyimpangan (F-21..F-25 berjalan tanpa terdaftar, `crypto_keys` tanpa entri, empat tabel ber-grant tingkat tabel); (2) Infrastructure 2.9 §8.4.1 - ledger migrasi `schema_migrations` ber-`component` dan ber-checksum, sehingga baseline dapat dipasang MAJU ke database yang berisi data, bukan hanya lewat reset. Implementasi: migrasi 0001b dan 0022, `api/scripts/migrate.ts`, 319 kasus hijau di lingkungan pengembangan |
 | **2.16** | 2026-09-29 | **Provisioning tenant: tenant dapat lahir tanpa skrip seed** (fondasi langkah 3, melunasi D-17 kunci enkripsi dan D-25 role sistem). ADR 2.10 mencatat pengecualian terkontrol ADR-002 §2.3a - platform membuat membership owner PERTAMA sebuah tenant baru secara langsung, atas keputusan pemilik proyek - beserta lima batas yang ditegakkan database (F-28: hanya tenant `PROVISIONING`, hanya bila belum ada satu anggota pun, hanya satu membership, hanya role owner, identitas harus sudah ada) dan risiko yang diterima secara sadar (pemilik identitas tidak dimintai persetujuan). Lampiran A menambah F-26, F-27, F-28. Demo Foundation 2.10 dan Infrastructure 2.10 mencatat template role sistem, ledger migrasi di register tabel, dan bentuk `POST /platform/tenants` sebagai provisioning satu transaksi. 332 kasus hijau di lingkungan pengembangan |
 | editorial | 2026-09-30 | Repository git dibuat (riwayat kini di git, §4). Folder utama dikembalikan ke kriteria §7.1: `Claude outputs/` (salinan lama berkas `app/` dan dokumen aktif, seluruhnya tertinggal dari versi yang berlaku) dan arsip log verifikasi `verify-*.zip` dihapus; `app/AUDIT-1.md` dihapus karena seluruh isinya sudah termuat di `app/AUDIT.md`. Daftar edisi di pembuka README diselaraskan dengan frontmatter masing-masing dokumen. Tanpa perubahan normatif |
+| **2.17** | 2026-09-30 | §7 kriteria 1: folder `.github/` diakui di folder utama sebagai tempat workflow CI (`verify.yml` menjalankan `app/scripts/verify.sh` pada setiap pull request dan push ke `main`). Tanpa perubahan pada dokumen lain |
 
 ## 6. Ringkasan review dan status tindak lanjut
 
@@ -123,7 +124,7 @@ Laporan lengkap: `_archive/REVIEW_BASELINE_DOCS_2026-09-16.md` dan `_archive/REV
 
 Kriteria lulus:
 
-1. Folder utama hanya berisi 7 file pada §1, folder `_archive/`, dan folder implementasi `app/`. Dokumen di `app/` adalah dokumentasi kode: tidak memuat salinan dokumen normatif (tidak ada berkas dengan `document_id` baseline) dan merujuk dokumen normatif dengan nama + bagian.
+1. Folder utama hanya berisi 7 file pada §1, folder `_archive/`, folder implementasi `app/`, dan folder `.github/` (konfigurasi CI - GitHub hanya membaca workflow dari lokasi itu). Dokumen di `app/` adalah dokumentasi kode: tidak memuat salinan dokumen normatif (tidak ada berkas dengan `document_id` baseline) dan merujuk dokumen normatif dengan nama + bagian.
 2. Dokumen aktif tidak merujuk file berakhiran versi (`_vX.Y.md`), `DOCUMENT_VERSION_INDEX.md`, atau file review secara langsung kecuali melalui `_archive/`.
 3. Dokumen aktif tidak memuat penanda revisi (`Perubahan vX.Y`, `(baru vX.Y)`, `(vX.Y)`) atau rujukan versi dalam teks ("Infrastructure SSOT v1.3").
 4. Setiap dokumen memiliki `edition` dan bagian Riwayat.
