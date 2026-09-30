@@ -1,0 +1,37 @@
+{
+  "name": "saas-demo-api",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "API demo - login, session, endpoint tenant-scoped di atas RLS, field terenkripsi",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "prisma generate --no-hints && tsc -p tsconfig.json",
+    "start": "node dist/src/main.js",
+    "dev": "prisma generate --no-hints && tsc -p tsconfig.json && node dist/src/main.js",
+    "test:e2e": "prisma generate --no-hints && tsc -p tsconfig.json && node --test --test-concurrency=1 dist/test/*.test.js",
+    "lint:guc": "node scripts/lint-guc.mjs",
+    "seed:demo": "prisma generate --no-hints && tsc -p tsconfig.json && node dist/scripts/seed-demo.js",
+    "seed:passwords": "npm run seed:demo",
+    "bootstrap:superadmin": "prisma generate --no-hints && tsc -p tsconfig.json && node dist/scripts/bootstrap-superadmin.js",
+    "prisma:generate": "prisma generate --no-hints"
+  },
+  "dependencies": {
+    "@nestjs/common": "12.0.3",
+    "@nestjs/core": "12.0.3",
+    "@nestjs/platform-express": "12.0.3",
+    "@prisma/adapter-pg": "7.10.0",
+    "@prisma/client": "7.10.0",
+    "pg": "8.23.0",
+    "reflect-metadata": "0.2.2",
+    "rxjs": "7.8.2"
+  },
+  "devDependencies": {
+    "@types/node": "22.18.1",
+    "@types/pg": "8.23.1",
+    "prisma": "7.10.0",
+    "typescript": "5.9.2"
+  }
+}

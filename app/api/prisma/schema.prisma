@@ -1,0 +1,89 @@
+// Model KLIEN Prisma untuk api/. Ditulis tangan dari db/migrations (0002, 0011);
+// BUKAN sumber skema. Sumber skema tetap SQL di db/migrations: Prisma tidak dapat
+// merepresentasikan RLS, FORCE, policy, fungsi SECURITY DEFINER, dan grant kolom
+// (ADR-001 sec.3.9). Kecocokan model ini dengan database diperiksa test/prisma.test.ts.
+// `prisma migrate` DILARANG untuk proyek ini (syarat GO spike DEMO-0100).
+
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  // ESM (Infrastructure SSOT sec.4). Impor antar berkas hasil generate diberi
+  // akhiran .js agar dapat dikompilasi tsconfig NodeNext tanpa
+  // allowImportingTsExtensions.
+  moduleFormat        = "esm"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Tenant {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug      String   @unique @db.VarChar(63)
+  name      String   @db.VarChar(255)
+  status    String   @default("ACTIVE") @db.VarChar(20)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  memberships TenantMembership[]
+
+  @@map("tenants")
+}
+
+model TenantMembership {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  status    String   @default("ACTIVE") @db.VarChar(20)
+  version   Int      @default(1)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  tenant  Tenant                 @relation(fields: [tenantId], references: [id])
+  profile TenantMemberProfile?
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, userId])
+  @@map("tenant_memberships")
+}
+
+model TenantMemberProfile {
+  id                     String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId               String   @map("tenant_id") @db.Uuid
+  membershipId           String   @map("membership_id") @db.Uuid
+  createdAt              DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  displayNameCiphertext  Bytes    @map("display_name_ciphertext")
+  displayNameKeyVersion  Int      @map("display_name_key_version")
+  contactEmailCiphertext Bytes    @map("contact_email_ciphertext")
+  contactEmailKeyVersion Int      @map("contact_email_key_version")
+  contactEmailBlindIndex Bytes    @map("contact_email_blind_index")
+
+  membership TenantMembership @relation(fields: [tenantId, membershipId], references: [tenantId, id], onDelete: Cascade)
+
+  @@unique([tenantId, membershipId])
+  @@unique([tenantId, contactEmailBlindIndex])
+  @@map("tenant_member_profiles")
+}
+
+// Model BACA undangan. token_hash dan identity_hint SENGAJA tidak dimodelkan:
+// app_user tidak punya hak SELECT atas keduanya (0012), sehingga model yang
+// memuatnya membuat setiap findMany gagal. Penulisan undangan memakai SQL
+// (tx.query) karena upsert pada partial unique index tidak dapat diungkapkan
+// dengan API model Prisma.
+model UserInvitation {
+  id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId               String    @map("tenant_id") @db.Uuid
+  emailCiphertext        Bytes     @map("email_ciphertext")
+  emailKeyVersion        Int       @map("email_key_version")
+  emailBlindIndex        Bytes     @map("email_blind_index")
+  invitedByMembershipId  String    @map("invited_by_membership_id") @db.Uuid
+  status                 String    @default("PENDING") @db.VarChar(16)
+  expiresAt              DateTime  @map("expires_at") @db.Timestamptz(6)
+  acceptedMembershipId   String?   @map("accepted_membership_id") @db.Uuid
+  createdAt              DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([tenantId, id])
+  @@map("user_invitations")
+}

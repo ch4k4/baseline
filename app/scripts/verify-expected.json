@@ -1,0 +1,7 @@
+{
+  "_tentang": "Jumlah kasus yang DIJAGA. verify.sh menolak angka yang kurang MAUPUN lebih. Kurang berarti ada tes yang hilang atau tidak ikut berjalan; lebih berarti ada tes baru yang ditambahkan tanpa memperbarui berkas ini - dan berkas yang tidak diperbarui adalah berkas yang berhenti menjaga apa pun. Ubah angka di sini pada commit yang sama dengan tes yang menambahnya.",
+  "sqlFiles": 12,
+  "sql": 117,
+  "api": 155,
+  "browser": 60
+}

@@ -1,0 +1,27 @@
+{
+  "name": "saas-demo-spike-prisma",
+  "version": "0.1.0",
+  "private": true,
+  "description": "DEMO-0100 spike: Prisma 7 + RLS + Opsi A + pool reuse",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "generate": "prisma generate",
+    "build": "tsc -p tsconfig.json",
+    "lint:guc": "node scripts/lint-guc.mjs src",
+    "test": "prisma generate && tsc -p tsconfig.json && node --test dist/test/*.test.js",
+    "drift": "node scripts/drift.mjs"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "7.10.0",
+    "@prisma/client": "7.10.0",
+    "pg": "8.23.0"
+  },
+  "devDependencies": {
+    "prisma": "7.10.0",
+    "@types/node": "22.18.1",
+    "@types/pg": "8.23.1",
+    "typescript": "5.9.2"
+  }
+}

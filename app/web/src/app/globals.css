@@ -1,0 +1,139 @@
+:root {
+  --bg: #fbfbfa; --fg: #1a1a18; --muted: #6b6b66; --line: #e4e4e0;
+  --accent: #2d5a4a; --danger: #9b2c2c; --card: #ffffff;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #17181a; --fg: #ececeb; --muted: #9a9a95; --line: #2c2e31;
+    --accent: #7fb3a0; --danger: #f08a8a; --card: #1e2022;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg);
+  font: 15px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+main { max-width: 760px; margin: 0 auto; padding: 48px 16px; }
+h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: -0.01em; }
+.sub { color: var(--muted); margin: 0 0 28px; font-size: 14px; }
+.card {
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: 10px; padding: 24px;
+}
+label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+input {
+  width: 100%; padding: 9px 11px; margin-bottom: 16px; font-size: 15px;
+  border: 1px solid var(--line); border-radius: 7px;
+  background: var(--bg); color: var(--fg);
+}
+button {
+  font: inherit; padding: 9px 18px; border-radius: 7px; cursor: pointer;
+  background: var(--accent); color: #fff; border: 1px solid transparent;
+}
+button.ghost { background: transparent; color: var(--muted); border-color: var(--line); }
+.error {
+  border-left: 3px solid var(--danger); background: color-mix(in srgb, var(--danger) 8%, transparent);
+  padding: 10px 14px; border-radius: 0 7px 7px 0; margin-bottom: 18px; font-size: 14px;
+}
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line); }
+th { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.bar { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; margin-bottom: 24px; }
+.tenant { font-weight: 600; }
+.hint { color: var(--muted); font-size: 13px; margin-top: 24px; }
+code { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: 13px; }
+.notice {
+  border-left: 3px solid var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent);
+  padding: 10px 14px; border-radius: 0 7px 7px 0; margin-bottom: 18px; font-size: 14px;
+}
+
+/* ---------------------------------------------------------------- slice 12 */
+/* Kerangka halaman setelah masuk: topbar, navigasi, dan isi yang lebih lebar. */
+.topbar { border-bottom: 1px solid var(--line); background: var(--card); }
+.topbar-inner {
+  max-width: 980px; margin: 0 auto; padding: 16px;
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap;
+}
+.topbar-aksi { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.label-tenant { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.tenant-id { font-size: 12px; color: var(--muted); font-family: ui-monospace, Consolas, monospace; }
+.nav { max-width: 980px; margin: 0 auto; padding: 0 16px; display: flex; gap: 4px; flex-wrap: wrap; }
+.nav-item {
+  padding: 8px 12px; border-radius: 7px 7px 0 0; color: var(--muted);
+  text-decoration: none; border-bottom: 2px solid transparent;
+}
+.nav-item:hover { color: var(--fg); }
+.nav-item.aktif { color: var(--fg); border-bottom-color: var(--accent); font-weight: 600; }
+main { max-width: 980px; }
+.judul-kartu { font-size: 15px; margin: 0 0 14px; }
+.remah { margin: 0 0 8px; font-size: 13px; }
+.kosong { color: var(--muted); font-size: 14px; margin: 0; }
+.muted { color: var(--muted); }
+.daftar-tautan, .chips, .pilihan { list-style: none; margin: 0; padding: 0; }
+.daftar-tautan li { padding: 8px 0; border-bottom: 1px solid var(--line); }
+.daftar-tautan li:last-child { border-bottom: none; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  display: inline-block; padding: 2px 9px; border: 1px solid var(--line);
+  border-radius: 999px; font-size: 13px; background: var(--bg);
+}
+.chip.kecil { font-size: 11px; margin-left: 6px; color: var(--muted); }
+.pilihan li { border-bottom: 1px solid var(--line); }
+.pilihan li:last-child { border-bottom: none; }
+.baris-pilihan { display: flex; gap: 10px; align-items: flex-start; padding: 9px 0; margin: 0; color: var(--fg); font-size: 14px; }
+.baris-pilihan input { width: auto; margin: 3px 0 0; }
+.label-blok { display: block; font-size: 13px; color: var(--muted); margin: 16px 0 4px; }
+.filter-baris { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+.filter-baris > div { flex: 1 1 160px; }
+.filter-baris input, .filter-baris select { margin-bottom: 0; }
+.filter-tombol { display: flex; gap: 10px; align-items: center; flex: 0 0 auto; }
+select {
+  width: 100%; padding: 9px 11px; font: inherit; border: 1px solid var(--line);
+  border-radius: 7px; background: var(--bg); color: var(--fg);
+}
+.tabel-gulir { overflow-x: auto; }
+.paginasi { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-top: 16px; font-size: 14px; color: var(--muted); }
+.paginasi-aksi { display: flex; gap: 14px; }
+.aksi-baris { display: flex; gap: 12px; align-items: center; margin-top: 18px; flex-wrap: wrap; }
+.ghost-link { color: var(--muted); text-decoration: none; border-bottom: 1px solid var(--line); }
+.tombol-danger, button.danger { background: var(--danger); color: #fff; border: 1px solid transparent; }
+.tombol-danger { display: inline-block; padding: 9px 18px; border-radius: 7px; text-decoration: none; }
+.rangka { display: grid; gap: 10px; }
+.baris-rangka { display: block; height: 12px; border-radius: 6px; background: var(--line); }
+.baris-rangka.pendek { width: 55%; }
+/* Fokus yang terlihat: navigasi keyboard harus dapat diikuti mata (sec.12.1). */
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px;
+}
+@media (max-width: 640px) {
+  .topbar-inner { flex-direction: column; }
+  main { padding: 24px 16px; }
+  .filter-tombol { width: 100%; }
+}
+/* fieldset dipakai FormAksi hanya untuk menonaktifkan isian selagi menunggu. */
+.tanpa-bingkai { border: 0; padding: 0; margin: 0; min-inline-size: auto; }
+
+/* ---------------------------------------------------------------- slice 14 */
+/*
+  Banner mode support (ADR-003 sec.2.2 butir 8). Warnanya sengaja mencolok dan
+  posisinya di atas segalanya: orang yang tidak sadar sedang berada di dalam data
+  tenant orang lain adalah risiko yang tidak dapat diperbaiki setelah kejadian.
+*/
+.banner-support {
+  background: #7a2e00; color: #fff5ec;
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 12px; flex-wrap: wrap;
+  padding: 10px 16px; font-size: 14px; font-weight: 600;
+}
+.banner-support .ghost { color: #fff5ec; border-color: #fff5ec80; background: transparent; }
+
+/* ---------------------------------------------------------------- slice 15 */
+/*
+  Label grup di navigasi (menu tanpa route dari GET /me/menu). Bukan tautan, jadi
+  tidak boleh terlihat seperti tautan: tanpa warna aksen, tanpa garis bawah aktif.
+*/
+.nav-grup {
+  padding: 8px 12px 8px 0; color: var(--muted);
+  font-size: 11px; text-transform: uppercase; letter-spacing: .06em;
+  align-self: center;
+}

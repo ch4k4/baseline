@@ -1,0 +1,4 @@
+node_modules/
+dist/
+# Hasil `prisma generate` (db.ps1 dan skrip npm membuatnya ulang).
+src/generated/

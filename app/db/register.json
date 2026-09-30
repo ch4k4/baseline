@@ -1,0 +1,766 @@
+{
+  "_tentang": "Register Lampiran A dalam bentuk data. BUKAN salinan dokumen normatif (README induk sec.7 kriteria 1): yang ada di sini hanya nomor F-xx, tanda tangan fungsi, policy, dan kolom yang di-grant - kontraknya, bukan teksnya. api/test/register.test.ts membandingkan berkas ini dengan database; perbedaan apa pun = build gagal. Menambah entri di sini WAJIB bersamaan dengan amandemen Lampiran A (ADR sec.3.7 butir 8).",
+  "roles": {
+    "owner": "app_owner",
+    "definer": "app_auth_definer",
+    "runtime": "app_user"
+  },
+  "functions": [
+    {
+      "id": "F-02",
+      "signature": "auth.find_identity_for_login(p_email_blind_index bytea)",
+      "note": "pre-context: identitas untuk login dari blind index global"
+    },
+    {
+      "id": "F-04",
+      "signature": "auth.list_login_contexts(p_user_id uuid)",
+      "note": "pre-context: daftar context login (baris TENANT per membership aktif + baris PLATFORM)"
+    },
+    {
+      "id": "F-05",
+      "signature": "auth.create_selection_ticket(p_user_id uuid, p_token_hash bytea, p_ttl_seconds integer)",
+      "note": "pre-context: tiket pemilihan context, TTL <= 5 menit"
+    },
+    {
+      "id": "F-06",
+      "signature": "auth.consume_selection_ticket(p_token_hash bytea)",
+      "note": "pre-context: pakai tiket pemilihan context, sekali pakai"
+    },
+    {
+      "id": "F-07",
+      "signature": "auth.create_session(p_context_kind character varying, p_user_id uuid, p_tenant_id uuid, p_membership_id uuid, p_ttl_minutes integer)",
+      "note": "pre-context: buat session (menjaga batas ORANG; batas tenant dijaga composite FK)"
+    },
+    {
+      "id": "F-09",
+      "signature": "auth.rotate_refresh_token(p_old_hash bytea, p_new_hash bytea, p_ttl_seconds integer)",
+      "note": "pre-context: rotasi refresh token, reuse -> REUSE_DETECTED"
+    },
+    {
+      "id": "F-10",
+      "signature": "auth.revoke_session(p_session_id uuid, p_reason character varying)",
+      "note": "pre-context: cabut session"
+    },
+    {
+      "id": "F-10",
+      "signature": "auth.revoke_token_family(p_family_id uuid, p_reason character varying)",
+      "note": "pre-context: cabut seluruh family refresh token"
+    },
+    {
+      "id": "F-11",
+      "signature": "auth.find_invitation_for_acceptance(p_token_hash bytea)",
+      "note": "pre-context: undangan untuk diterima, dari hash token"
+    },
+    {
+      "id": "F-12",
+      "signature": "auth.accept_invitation(p_token_hash bytea, p_user_id uuid, p_profile_id uuid, p_display_name_ciphertext bytea, p_display_name_key_version integer, p_contact_email_ciphertext bytea, p_contact_email_key_version integer, p_contact_email_blind_index bytea)",
+      "note": "pre-context: terima undangan (membership + profil + role) atomik"
+    },
+    {
+      "id": "F-13",
+      "signature": "auth.get_platform_roles(p_user_id uuid)",
+      "note": "platform: role platform aktif milik satu identitas"
+    },
+    {
+      "id": "F-14",
+      "signature": "auth.write_audit_event(p_event_type character varying, p_outcome character varying, p_tenant_id uuid, p_actor_user_id uuid, p_actor_session_id uuid, p_actor_identifier_hash bytea, p_subject_type character varying, p_subject_id uuid, p_detail jsonb)",
+      "note": "cross-context: satu-satunya penulis audit_logs"
+    },
+    {
+      "id": "F-15",
+      "signature": "auth.notify_tenant_security_event(p_tenant_id uuid, p_type text, p_ref_id uuid)",
+      "note": "cross-context: notifikasi keamanan ke tenant, tanpa hak baca"
+    },
+    {
+      "id": "F-16",
+      "signature": "auth.create_identity_for_invitation(p_token_hash bytea, p_user_id uuid, p_email_blind_index bytea, p_email_ciphertext bytea, p_email_key_version integer, p_password_hash text)",
+      "note": "pre-context: buat identitas baru saat undangan diterima"
+    },
+    {
+      "id": "F-17",
+      "signature": "auth.count_recent_failures(p_identifier_hash bytea, p_window_seconds integer, p_event_type character varying)",
+      "note": "pre-context: jumlah kegagalan untuk rate limiting (mengembalikan angka, bukan baris)"
+    },
+    {
+      "id": "F-18",
+      "signature": "auth.find_support_session(p_id uuid)",
+      "note": "pre-context: validasi sesi support setiap request, fail-closed"
+    },
+    {
+      "id": "F-19",
+      "signature": "auth.end_support_sessions_for_platform_session(p_platform_session_id uuid)",
+      "note": "cross-context: akhiri sesi support yang menempel pada session platform"
+    },
+    {
+      "id": "F-20",
+      "signature": "auth.menus_assert_hierarchy()",
+      "note": "integritas: penjaga hierarki menu (siklus dan kedalaman), dipanggil trigger"
+    },
+    {
+      "id": "F-21",
+      "signature": "auth.find_session(p_session_id uuid)",
+      "note": "pre-context: baris session untuk verifikasi setiap request"
+    },
+    {
+      "id": "F-22",
+      "signature": "auth.find_membership(p_user_id uuid, p_tenant_id uuid)",
+      "note": "pre-context: membership aktif satu identitas pada satu tenant"
+    },
+    {
+      "id": "F-23",
+      "signature": "auth.create_refresh_token(p_session_id uuid, p_tenant_id uuid, p_context_kind character varying, p_token_hash bytea, p_ttl_seconds integer)",
+      "note": "pre-context: refresh token baru untuk session yang sudah ada"
+    },
+    {
+      "id": "F-24",
+      "signature": "auth.get_active_key(p_purpose character varying, p_tenant_id uuid)",
+      "note": "kunci: DEK terbungkus yang ACTIVE untuk satu purpose+scope (tanpa KEK)"
+    },
+    {
+      "id": "F-25",
+      "signature": "auth.get_key_version(p_purpose character varying, p_tenant_id uuid, p_version integer)",
+      "note": "kunci: DEK terbungkus versi tertentu, untuk membuka data lama"
+    },
+    {
+      "id": "F-26",
+      "signature": "auth.create_tenant_key(p_tenant_id uuid, p_purpose character varying, p_key_version integer, p_wrapped_dek bytea)",
+      "note": "provisioning: DEK terbungkus untuk tenant baru; purpose platform ditolak"
+    },
+    {
+      "id": "F-27",
+      "signature": "auth.provision_tenant_roles(p_tenant_id uuid, p_component character varying)",
+      "note": "provisioning: role sistem tenant baru dari template; hanya tenant PROVISIONING tanpa role"
+    },
+    {
+      "id": "F-28",
+      "signature": "auth.provision_tenant_owner(p_tenant_id uuid, p_user_id uuid, p_profile_id uuid, p_display_name_ciphertext bytea, p_display_name_key_version integer, p_contact_email_ciphertext bytea, p_contact_email_key_version integer, p_contact_email_blind_index bytea)",
+      "note": "provisioning: owner pertama tenant baru (pengecualian ADR-002, hanya PROVISIONING dan tanpa anggota)"
+    }
+  ],
+  "belumAda": [
+    {
+      "id": "F-01",
+      "signature": "auth.resolve_tenant_by_host(host text)",
+      "alasan": "Resolusi tenant dari host tidak ada di demo; tabel tenant_domains belum dibuat. Context tenant berasal dari membership."
+    },
+    {
+      "id": "F-03",
+      "signature": "auth.record_login_attempt(user_id uuid, succeeded boolean)",
+      "alasan": "Digantikan F-17: hitungan kegagalan dibaca dari audit_logs, bukan disimpan di credentials."
+    },
+    {
+      "id": "F-08",
+      "signature": "auth.find_refresh_token(token_hash bytea)",
+      "alasan": "Diserap F-09 rotate_refresh_token dan F-21 find_session."
+    }
+  ],
+  "policies": [
+    {
+      "table": "audit_logs",
+      "cmd": "INSERT",
+      "policy": "definer_insert"
+    },
+    {
+      "table": "audit_logs",
+      "cmd": "SELECT",
+      "policy": "definer_read"
+    },
+    {
+      "table": "auth_selection_tickets",
+      "cmd": "INSERT",
+      "policy": "definer_insert"
+    },
+    {
+      "table": "auth_selection_tickets",
+      "cmd": "SELECT",
+      "policy": "definer_read"
+    },
+    {
+      "table": "auth_selection_tickets",
+      "cmd": "UPDATE",
+      "policy": "definer_update"
+    },
+    {
+      "table": "credentials",
+      "cmd": "INSERT",
+      "policy": "definer_insert"
+    },
+    {
+      "table": "credentials",
+      "cmd": "SELECT",
+      "policy": "definer_read"
+    },
+    {
+      "table": "crypto_keys",
+      "cmd": "INSERT",
+      "policy": "definer_insert"
+    },
+    {
+      "table": "crypto_keys",
+      "cmd": "SELECT",
+      "policy": "definer_read"
+    },
+    {
+      "table": "invitation_roles",
+      "cmd": "SELECT",
+      "policy": "definer_read"
+    },
+    {
+      "table": "menus",
+      "cmd": "SELECT",
+      "policy": "definer_read"
+    },
+    {
+      "table": "permissions",
+      "cmd": "SELECT",
+      "policy": "definer_read"
+    },
+    {
+      "table": "platform_role_assignments",
+      "cmd": "SELECT",
+      "policy": "definer_read"
+    },
+    {
+      "table": "refresh_tokens",
+      "cmd": "INSERT",
+      "policy": "definer_insert"
+    },
+    {
+      "table": "refresh_tokens",
+      "cmd": "SELECT",
+      "policy": "definer_read"
+    },
+    {
+      "table": "refresh_tokens",
+      "cmd": "UPDATE",
+      "policy": "definer_update"
+    },
+    {
+      "table": "role_permissions",
+      "cmd": "INSERT",
+      "policy": "definer_insert"
+    },
+    {
+      "table": "role_template_permissions",
+      "cmd": "SELECT",
+      "policy": "definer_read"
+    },
+    {
+      "table": "role_templates",
+      "cmd": "SELECT",
+      "policy": "definer_read"
+    },
+    {
+      "table": "roles",
+      "cmd": "INSERT",
+      "policy": "definer_insert"
+    },
+    {
+      "table": "roles",
+      "cmd": "SELECT",
+      "policy": "definer_read"
+    },
+    {
+      "table": "sessions",
+      "cmd": "INSERT",
+      "policy": "definer_insert"
+    },
+    {
+      "table": "sessions",
+      "cmd": "SELECT",
+      "policy": "definer_read"
+    },
+    {
+      "table": "sessions",
+      "cmd": "UPDATE",
+      "policy": "definer_update"
+    },
+    {
+      "table": "support_sessions",
+      "cmd": "SELECT",
+      "policy": "definer_read"
+    },
+    {
+      "table": "support_sessions",
+      "cmd": "UPDATE",
+      "policy": "definer_update"
+    },
+    {
+      "table": "tenant_member_profiles",
+      "cmd": "INSERT",
+      "policy": "definer_insert"
+    },
+    {
+      "table": "tenant_memberships",
+      "cmd": "INSERT",
+      "policy": "definer_insert"
+    },
+    {
+      "table": "tenant_memberships",
+      "cmd": "SELECT",
+      "policy": "definer_read"
+    },
+    {
+      "table": "tenant_notifications",
+      "cmd": "INSERT",
+      "policy": "definer_insert"
+    },
+    {
+      "table": "tenants",
+      "cmd": "SELECT",
+      "policy": "definer_read"
+    },
+    {
+      "table": "user_invitations",
+      "cmd": "SELECT",
+      "policy": "definer_read"
+    },
+    {
+      "table": "user_invitations",
+      "cmd": "UPDATE",
+      "policy": "definer_update"
+    },
+    {
+      "table": "user_role_assignments",
+      "cmd": "INSERT",
+      "policy": "definer_insert"
+    },
+    {
+      "table": "user_role_assignments",
+      "cmd": "SELECT",
+      "policy": "definer_read"
+    },
+    {
+      "table": "users",
+      "cmd": "INSERT",
+      "policy": "definer_insert"
+    },
+    {
+      "table": "users",
+      "cmd": "SELECT",
+      "policy": "definer_read"
+    }
+  ],
+  "columnGrants": [
+    {
+      "table": "audit_logs",
+      "privilege": "INSERT",
+      "columns": [
+        "actor_identifier_hash",
+        "actor_session_id",
+        "actor_user_id",
+        "detail",
+        "event_type",
+        "id",
+        "occurred_at",
+        "outcome",
+        "subject_id",
+        "subject_type",
+        "tenant_id"
+      ]
+    },
+    {
+      "table": "audit_logs",
+      "privilege": "SELECT",
+      "columns": [
+        "actor_identifier_hash",
+        "event_type",
+        "id",
+        "occurred_at",
+        "outcome"
+      ]
+    },
+    {
+      "table": "auth_selection_tickets",
+      "privilege": "INSERT",
+      "columns": [
+        "consumed_at",
+        "created_at",
+        "expires_at",
+        "id",
+        "token_hash",
+        "user_id"
+      ]
+    },
+    {
+      "table": "auth_selection_tickets",
+      "privilege": "SELECT",
+      "columns": [
+        "consumed_at",
+        "created_at",
+        "expires_at",
+        "id",
+        "token_hash",
+        "user_id"
+      ]
+    },
+    {
+      "table": "auth_selection_tickets",
+      "privilege": "UPDATE",
+      "columns": [
+        "consumed_at"
+      ]
+    },
+    {
+      "table": "credentials",
+      "privilege": "INSERT",
+      "columns": [
+        "password_hash",
+        "user_id"
+      ]
+    },
+    {
+      "table": "credentials",
+      "privilege": "SELECT",
+      "columns": [
+        "id",
+        "password_hash",
+        "user_id"
+      ]
+    },
+    {
+      "table": "crypto_keys",
+      "privilege": "INSERT",
+      "columns": [
+        "id",
+        "key_version",
+        "purpose",
+        "status",
+        "tenant_id",
+        "wrapped_dek"
+      ]
+    },
+    {
+      "table": "crypto_keys",
+      "privilege": "SELECT",
+      "columns": [
+        "key_version",
+        "purpose",
+        "status",
+        "tenant_id",
+        "wrapped_dek"
+      ]
+    },
+    {
+      "table": "invitation_roles",
+      "privilege": "SELECT",
+      "columns": [
+        "invitation_id",
+        "role_id",
+        "tenant_id"
+      ]
+    },
+    {
+      "table": "menus",
+      "privilege": "SELECT",
+      "columns": [
+        "code",
+        "id",
+        "owner_key",
+        "parent_id"
+      ]
+    },
+    {
+      "table": "permissions",
+      "privilege": "SELECT",
+      "columns": [
+        "code",
+        "retired_at",
+        "scope"
+      ]
+    },
+    {
+      "table": "platform_role_assignments",
+      "privilege": "SELECT",
+      "columns": [
+        "revoked_at",
+        "role_code",
+        "user_id"
+      ]
+    },
+    {
+      "table": "refresh_tokens",
+      "privilege": "INSERT",
+      "columns": [
+        "context_kind",
+        "expires_at",
+        "family_id",
+        "id",
+        "issued_at",
+        "replaced_by_id",
+        "revoked_at",
+        "rotated_at",
+        "session_id",
+        "tenant_id",
+        "token_hash"
+      ]
+    },
+    {
+      "table": "refresh_tokens",
+      "privilege": "SELECT",
+      "columns": [
+        "context_kind",
+        "expires_at",
+        "family_id",
+        "id",
+        "issued_at",
+        "replaced_by_id",
+        "revoked_at",
+        "rotated_at",
+        "session_id",
+        "tenant_id",
+        "token_hash"
+      ]
+    },
+    {
+      "table": "refresh_tokens",
+      "privilege": "UPDATE",
+      "columns": [
+        "replaced_by_id",
+        "revoked_at",
+        "rotated_at"
+      ]
+    },
+    {
+      "table": "role_permissions",
+      "privilege": "INSERT",
+      "columns": [
+        "permission_code",
+        "permission_scope",
+        "role_id",
+        "tenant_id"
+      ]
+    },
+    {
+      "table": "role_template_permissions",
+      "privilege": "SELECT",
+      "columns": [
+        "component",
+        "permission_code",
+        "permission_scope",
+        "role_code"
+      ]
+    },
+    {
+      "table": "role_templates",
+      "privilege": "SELECT",
+      "columns": [
+        "code",
+        "component",
+        "includes_all_tenant_permissions",
+        "name",
+        "sort_order"
+      ]
+    },
+    {
+      "table": "roles",
+      "privilege": "INSERT",
+      "columns": [
+        "code",
+        "id",
+        "is_system",
+        "name",
+        "tenant_id"
+      ]
+    },
+    {
+      "table": "roles",
+      "privilege": "SELECT",
+      "columns": [
+        "archived_at",
+        "code",
+        "id",
+        "is_system",
+        "tenant_id"
+      ]
+    },
+    {
+      "table": "sessions",
+      "privilege": "INSERT",
+      "columns": [
+        "context_kind",
+        "created_at",
+        "expires_at",
+        "id",
+        "last_seen_at",
+        "membership_id",
+        "revocation_reason",
+        "revoked_at",
+        "status",
+        "tenant_id",
+        "user_id"
+      ]
+    },
+    {
+      "table": "sessions",
+      "privilege": "SELECT",
+      "columns": [
+        "context_kind",
+        "created_at",
+        "expires_at",
+        "id",
+        "last_seen_at",
+        "membership_id",
+        "revocation_reason",
+        "revoked_at",
+        "status",
+        "tenant_id",
+        "user_id"
+      ]
+    },
+    {
+      "table": "sessions",
+      "privilege": "UPDATE",
+      "columns": [
+        "revocation_reason",
+        "revoked_at",
+        "status"
+      ]
+    },
+    {
+      "table": "support_sessions",
+      "privilege": "SELECT",
+      "columns": [
+        "expires_at",
+        "id",
+        "platform_session_id",
+        "scope",
+        "status",
+        "superadmin_user_id",
+        "tenant_id"
+      ]
+    },
+    {
+      "table": "support_sessions",
+      "privilege": "UPDATE",
+      "columns": [
+        "end_reason",
+        "ended_at",
+        "status"
+      ]
+    },
+    {
+      "table": "tenant_member_profiles",
+      "privilege": "INSERT",
+      "columns": [
+        "contact_email_blind_index",
+        "contact_email_ciphertext",
+        "contact_email_key_version",
+        "display_name_ciphertext",
+        "display_name_key_version",
+        "id",
+        "membership_id",
+        "tenant_id"
+      ]
+    },
+    {
+      "table": "tenant_memberships",
+      "privilege": "INSERT",
+      "columns": [
+        "status",
+        "tenant_id",
+        "user_id"
+      ]
+    },
+    {
+      "table": "tenant_memberships",
+      "privilege": "SELECT",
+      "columns": [
+        "id",
+        "status",
+        "tenant_id",
+        "user_id"
+      ]
+    },
+    {
+      "table": "tenant_notifications",
+      "privilege": "INSERT",
+      "columns": [
+        "audience",
+        "id",
+        "ref_id",
+        "tenant_id",
+        "type"
+      ]
+    },
+    {
+      "table": "tenants",
+      "privilege": "SELECT",
+      "columns": [
+        "id",
+        "name",
+        "slug",
+        "status"
+      ]
+    },
+    {
+      "table": "user_invitations",
+      "privilege": "SELECT",
+      "columns": [
+        "expires_at",
+        "id",
+        "identity_hint",
+        "invited_by_membership_id",
+        "status",
+        "tenant_id",
+        "token_hash"
+      ]
+    },
+    {
+      "table": "user_invitations",
+      "privilege": "UPDATE",
+      "columns": [
+        "accepted_membership_id",
+        "status",
+        "updated_at"
+      ]
+    },
+    {
+      "table": "user_role_assignments",
+      "privilege": "INSERT",
+      "columns": [
+        "assigned_by_membership_id",
+        "membership_id",
+        "role_id",
+        "tenant_id"
+      ]
+    },
+    {
+      "table": "user_role_assignments",
+      "privilege": "SELECT",
+      "columns": [
+        "ended_at",
+        "membership_id",
+        "role_id",
+        "tenant_id"
+      ]
+    },
+    {
+      "table": "users",
+      "privilege": "INSERT",
+      "columns": [
+        "email_blind_index",
+        "email_ciphertext",
+        "email_key_version",
+        "id"
+      ]
+    },
+    {
+      "table": "users",
+      "privilege": "SELECT",
+      "columns": [
+        "email_blind_index",
+        "id",
+        "status"
+      ]
+    }
+  ],
+  "invarian": {
+    "tanpaGrantTingkatTabel": true,
+    "semuaFungsiDimilikiDefiner": true,
+    "semuaFungsiPunyaSearchPath": true,
+    "tanpaBypassRls": true,
+    "appUserBukanAnggotaDefiner": true,
+    "rlsSelaluForce": true
+  }
+}
