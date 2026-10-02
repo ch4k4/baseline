@@ -52,6 +52,8 @@ export const AUDIT_EVENTS = [
   // dapat MELIHAT bahwa anggota pertamanya datang dari luar dirinya.
   'tenant.created',
   'tenant.owner_provisioned',
+  // Suspend/reactivate (D-47). Detail hanya status asal dan tujuan.
+  'tenant.status_changed',
 ] as const;
 
 export type AuditEventType = (typeof AUDIT_EVENTS)[number];

@@ -217,8 +217,13 @@ describe('slice 10 - RBAC di endpoint', () => {
     await assign(m.membershipId, ROLE_ALPHA.tenant_auditor);
     assert.equal((await http('GET', '/api/v1/members', undefined, m.token)).status, 200);
     await db.query(`UPDATE tenant_memberships SET status = 'SUSPENDED' WHERE id = $1`, [m.membershipId]);
-    assert.equal((await http('GET', '/api/v1/members', undefined, m.token)).status, 403);
-    assert.deepEqual(await mine(m.token), []);
+    // Sampai migrasi 0024 jawabannya 403: session tetap diterima dan hanya permission
+    // yang kosong (effective_permissions). Sejak F-21 memeriksa membership, session-nya
+    // sendiri ditolak - 401, seperti yang selama ini dinyatakan Lampiran A dan seperti
+    // jalur penangguhan lewat API (yang mencabut session). Status diubah langsung di
+    // database di sini justru untuk membuktikan penolakan itu TANPA pencabutan session.
+    assert.equal((await http('GET', '/api/v1/members', undefined, m.token)).status, 401);
+    assert.equal((await http('GET', '/api/v1/me/permissions', undefined, m.token)).status, 401);
   });
 
   test('7. hak mengundang datang dari permission, bukan status owner (D-21)', async () => {
