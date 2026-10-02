@@ -27,6 +27,8 @@ export const PESAN_SUKSES: Record<string, string> = {
   'notifikasi-dibaca': 'Ditandai terbaca. Tandanya tidak dapat dikembalikan.',
   'admin-diberi': 'Hak admin platform diberikan. Berlaku saat orang itu masuk lagi.',
   'admin-dicabut': 'Hak admin platform dicabut.',
+  'tenant-disuspend': 'Tenant disuspend. Anggotanya kehilangan akses pada permintaan berikutnya.',
+  'tenant-diaktifkan': 'Tenant diaktifkan kembali.',
   'support-mulai':
     'Sesi dukungan dibuka. Selama sesi berjalan, tenant ini melihat kejadiannya di layar Keamanan miliknya.',
   'support-readonly':
