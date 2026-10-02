@@ -1,7 +1,7 @@
 ---
 title: "SaaS Multi-Tenant Multi-Industry Baseline — README"
 document_id: "BASELINE-README"
-edition: "2.17 (consolidated final)"
+edition: "2.18 (consolidated final)"
 status: "Consolidated Baseline — Proposed; specialist approval pending"
 last_updated: "2026-09-27"
 purpose: "Pintu masuk dokumentasi: daftar dokumen, urutan baca, aturan perubahan, keputusan terbuka, riwayat, dan ringkasan review"
@@ -9,7 +9,7 @@ purpose: "Pintu masuk dokumentasi: daftar dokumen, urutan baca, aturan perubahan
 
 # SaaS Multi-Tenant Multi-Industry Baseline
 
-Folder ini berisi baseline arsitektur dan delivery untuk aplikasi SaaS multi-tenant lintas industri (Next.js + NestJS + Prisma + PostgreSQL). Dokumen dikelola satu file per dokumen tanpa akhiran versi; `edition` dinaikkan per dokumen sesuai §4. Edisi saat ini: `README.md` **2.17**; `ARCHITECTURE_DECISIONS.md`, `INFRASTRUCTURE_SSOT.md`, dan `SAAS_DEMO_FOUNDATION_SSOT.md` **2.10**; `SAAS_DEMO_SPRINT_PLAN.md` dan `DATA_PROTECTION_ENCRYPTION_SSOT.md` **2.1**; `GENERAL_FEATURE_BASE_SSOT.md` masih **2.0** karena tidak ada perubahan normatif.
+Folder ini berisi baseline arsitektur dan delivery untuk aplikasi SaaS multi-tenant lintas industri (Next.js + NestJS + Prisma + PostgreSQL). Dokumen dikelola satu file per dokumen tanpa akhiran versi; `edition` dinaikkan per dokumen sesuai §4. Edisi saat ini: `README.md` **2.18**; `ARCHITECTURE_DECISIONS.md` dan `SAAS_DEMO_FOUNDATION_SSOT.md` **2.11**; `INFRASTRUCTURE_SSOT.md` **2.10**; `SAAS_DEMO_SPRINT_PLAN.md` dan `DATA_PROTECTION_ENCRYPTION_SSOT.md` **2.1**; `GENERAL_FEATURE_BASE_SSOT.md` masih **2.0** karena tidak ada perubahan normatif.
 
 > **Status penting:** "final" berarti **struktur dokumen final dan konsisten**, bukan disetujui. Seluruh keputusan rinci masih **Proposed** sampai Technical, Security/Privacy, Operations, dan Legal/DPO memberi sign-off. Dokumen ini bukan bukti kepatuhan UU PDP maupun production readiness.
 
@@ -91,6 +91,7 @@ Folder `_archive/` menyimpan seluruh versi sebelumnya dan dua laporan review. Ar
 | **2.16** | 2026-09-29 | **Provisioning tenant: tenant dapat lahir tanpa skrip seed** (fondasi langkah 3, melunasi D-17 kunci enkripsi dan D-25 role sistem). ADR 2.10 mencatat pengecualian terkontrol ADR-002 §2.3a - platform membuat membership owner PERTAMA sebuah tenant baru secara langsung, atas keputusan pemilik proyek - beserta lima batas yang ditegakkan database (F-28: hanya tenant `PROVISIONING`, hanya bila belum ada satu anggota pun, hanya satu membership, hanya role owner, identitas harus sudah ada) dan risiko yang diterima secara sadar (pemilik identitas tidak dimintai persetujuan). Lampiran A menambah F-26, F-27, F-28. Demo Foundation 2.10 dan Infrastructure 2.10 mencatat template role sistem, ledger migrasi di register tabel, dan bentuk `POST /platform/tenants` sebagai provisioning satu transaksi. 332 kasus hijau di lingkungan pengembangan |
 | editorial | 2026-09-30 | Repository git dibuat (riwayat kini di git, §4). Folder utama dikembalikan ke kriteria §7.1: `Claude outputs/` (salinan lama berkas `app/` dan dokumen aktif, seluruhnya tertinggal dari versi yang berlaku) dan arsip log verifikasi `verify-*.zip` dihapus; `app/AUDIT-1.md` dihapus karena seluruh isinya sudah termuat di `app/AUDIT.md`. Daftar edisi di pembuka README diselaraskan dengan frontmatter masing-masing dokumen. Tanpa perubahan normatif |
 | **2.17** | 2026-09-30 | §7 kriteria 1: folder `.github/` diakui di folder utama sebagai tempat workflow CI (`verify.yml` menjalankan `app/scripts/verify.sh` pada setiap pull request dan push ke `main`). Tanpa perubahan pada dokumen lain |
+| **2.18** | 2026-10-02 | **Suspend tenant yang benar-benar berlaku (D-47).** ADR 2.11: Lampiran A F-21 menolak session `TENANT` bila tenant atau membership-nya tidak `ACTIVE` - menutup selisih yang ditemukan saat merancangnya: Infrastructure SSOT §8.6 menuntut pemeriksaan tenant `ACTIVE` setiap request dan baris F-21 menyatakan pemeriksaan membership, sementara fungsi yang terpasang tidak melakukan keduanya. Demo Foundation 2.11 §11.2: `PATCH /platform/tenants/:id/status` (`ACTIVE ↔ SUSPENDED`). Implementasi: migrasi 0024, 10 tes API |
 
 ## 6. Ringkasan review dan status tindak lanjut
 

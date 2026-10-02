@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, Post, Req } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Param, Patch, Post, Req } from '@nestjs/common';
 import { RequirePlatformPermission } from '../authz/access.decorator.js';
 import { TenantProvisioningService } from './tenant-provisioning.service.js';
 
@@ -9,10 +9,9 @@ import { TenantProvisioningService } from './tenant-provisioning.service.js';
  * memasang kunci enkripsi (D-17) dan role sistem (D-25) sekaligus. Rinciannya dan
  * batas-batasnya ada di TenantProvisioningService.
  *
- * `PATCH /:id/status` (suspend/reactivate) BELUM ada di sini, dan tidak dibuat
- * setengah: policy platform_update sudah dipasang migrasi 0023, tetapi endpoint,
- * aturan transisi status, dan audit `tenant.status_changed` adalah pekerjaan
- * tersendiri - lihat DEFERRED.
+ * `PATCH /:id/status` mensuspend atau mengaktifkan kembali tenant (D-47). Ia baru
+ * berarti sejak F-21 menolak session tenant yang tidak ACTIVE (migrasi 0024) -
+ * sebelum itu, status hanya kolom yang tidak dibaca request mana pun.
  */
 @Controller('api/v1/platform/tenants')
 export class PlatformTenantsController {
@@ -43,5 +42,11 @@ export class PlatformTenantsController {
       req.session.user_id,
       req.session.session_id,
     );
+  }
+
+  @Patch(':id/status')
+  @RequirePlatformPermission('platform.tenants.update_status')
+  async changeStatus(@Req() req: any, @Param('id') id: string, @Body() body: any) {
+    return this.tenants.changeStatus(id, body?.status, req.session.user_id, req.session.session_id);
   }
 }

@@ -1,10 +1,10 @@
 ---
 title: "SaaS Demo Foundation SSOT"
 document_id: "SAAS-DEMO-FOUNDATION-SSOT"
-edition: "2.10 (consolidated final)"
+edition: "2.11 (consolidated final)"
 status: "Consolidated Baseline — Proposed; specialist approval pending"
 owner: "<OWNER_PLACEHOLDER>"
-last_updated: "2026-09-29"
+last_updated: "2026-10-02"
 implementation_scope: "Authentication, context selection, invitation, profile, SaaS tenancy, RBAC, platform superadmin with break-glass support session, dynamic menu, session, and audit"
 related_documents:
   - "README.md"
@@ -1038,7 +1038,7 @@ Semua route di bawah memerlukan platform permission, berjalan dengan `context_ki
 ```text
 GET   /platform/tenants                   (platform.tenants.read)
 POST  /platform/tenants                   (platform.tenants.create)
-PATCH /platform/tenants/:id/status        (platform.tenants.update_status) - BELUM ADA
+PATCH /platform/tenants/:id/status        (platform.tenants.update_status)
 
 GET   /platform/admins
 POST  /platform/admins                    (tambah superadmin; tidak untuk diri sendiri)
@@ -1076,7 +1076,18 @@ Satu transaksi untuk seluruh rangkaian, karena tenant yang punya kunci tanpa rol
 
 Nama dan email owner disegel dengan kunci tenant yang BARU dicetak, bukan dibaca kembali dari database: kunci itu belum ter-commit saat dipakai. Ini satu-satunya jalur yang menyegel dengan kunci di memori; seluruh jalur lain tetap membaca kunci lewat F-24/F-25.
 
-`PATCH /platform/tenants/:id/status` belum diimplementasikan: policy databasenya sudah ada, tetapi aturan transisi status, penolakan `PURGED`, dan audit `tenant.status_changed` adalah pekerjaan tersendiri (`app/DEFERRED.md`).
+`PATCH /platform/tenants/:id/status` mensuspend atau mengaktifkan kembali tenant:
+
+```text
+{ status: "SUSPENDED" | "ACTIVE" }
+  -> transisi yang sah hanya ACTIVE -> SUSPENDED dan SUSPENDED -> ACTIVE;
+     status sama atau asal lain (PROVISIONING, ARCHIVED) -> 409; target selain dua itu -> 400
+  -> baris tenant dikunci (FOR UPDATE) selama transisi
+  -> audit tenant.status_changed DUA baris (platform dan tenant), detail hanya { from, to }
+  -> 200 { tenantId, status, previousStatus }
+```
+
+Yang membuat suspend berarti adalah F-21 (ADR Lampiran A): session `TENANT` pada tenant yang tidak `ACTIVE` ditolak pada request berikutnya, refresh tidak menghidupkannya, dan login maupun pemilihan tenant tidak menawarkannya. Session anggota **tidak dicabut** saat suspend - mencabutnya dari context platform berarti menulis data tenant tanpa break-glass - sehingga session yang belum kedaluwarsa hidup kembali saat tenant diaktifkan lagi (`app/DEFERRED.md` D-55). Arsip, penutupan, dan purge (`ARCHIVED`, `CLOSING`, `PURGED`) belum diimplementasikan dan menunggu keputusan retensi data.
 
 Token support session memiliki claim `context_kind=support`, `tenant_id`, `support_session_id`, `scope`, dan `exp` ≤ `expires_at`. Selama sesi, superadmin memakai route tenant biasa dengan permission set support (ADR-003 §2.2), bukan permission tenant owner.
 
@@ -1577,6 +1588,7 @@ Open decision tidak boleh diisi dengan asumsi diam-diam. Keputusan yang memengar
 | 2.4 | 2026-09-22 | §15 ditulis ulang dengan konvensi `<domain>.<aksi>` + `outcome` + reason code, sesuai implementasi; nama hasil-dalam-nama (`*.succeeded`, `*.failed`, `*_changed`, `authorization.denied`, `auth.context_selection_ticket_rejected`) diganti; `auth.refresh.reuse_detected` dipertahankan sebagai nama tersendiri; §7.3 dan §8 contoh nama event diselaraskan. Keputusan pemilik proyek (D-29) |
 | 2.5 | 2026-09-23 | §7.1/§7.2/§7.3: katalog `audit_event_types` (platform-global, read-only untuk tenant) sebagai penegak allowlist nama event lewat foreign key dari `audit_logs`; §15 dinyatakan sebagai isi katalog itu. Keputusan pemilik proyek (D-30) |
 | 2.6 | 2026-09-23 | §7.3 diselaraskan dengan implementasi (D-31): kolom, tipe, constraint, dan partial index setiap tabel mengikuti `db/migrations`; `crypto_keys` ditambahkan ke §7.1/§7.2/§7.3; tabel yang belum dibuat (`menus`, `menu_permissions`, `tenant_notifications`) ditandai rencana; `menu_permissions` merujuk permission lewat `code`. Keputusan pemilik proyek |
+| 2.11 | 2026-10-02 | §11.2: `PATCH /platform/tenants/:id/status` diimplementasikan (D-47) - transisi `ACTIVE ↔ SUSPENDED`, audit `tenant.status_changed` dua sisi, dan akibatnya lewat F-21 (session tenant non-`ACTIVE` ditolak). Batas yang diterima: session tidak dicabut saat suspend, sehingga hidup kembali saat reactivate (D-55); `ARCHIVED`/`CLOSING`/`PURGED` belum ada |
 | 2.10 | 2026-09-29 | §7.1/§7.2/§7.3: `role_templates`, `role_template_permissions`, dan `schema_migrations` dicatat sesuai implementasi, termasuk alasan mengapa ledger adalah satu-satunya tabel tanpa RLS; §11.2 menjelaskan `POST /platform/tenants` sebagai provisioning penuh dalam satu transaksi (kunci D-17, role D-25, owner pertama lewat pengecualian ADR-002 §2.3a, status ACTIVE sebagai penutup pintu) dan menyatakan `PATCH /:id/status` belum ada; §15 menambah `tenant.owner_provisioned`; §16 mencatat seed bukan lagi satu-satunya cara tenant lahir. Keputusan pemilik proyek (fondasi langkah 3); review Security pending |
 | 2.9 | 2026-09-28 | §7.3: `menus` dan `menu_permissions` ditulis sesuai implementasi (migrasi 0021) dan tidak lagi berstatus rencana — `context_kind` pada menu, `is_public_authenticated` sebagai satu-satunya pengecualian deny-by-default, CHECK route/kode, trigger hierarki F-20, dan GRANT baca-saja; §7.2 kolom RLS/register kedua tabel disesuaikan; §5 menegaskan `menus.read` adalah permission administrasi menu dan BUKAN syarat `GET /me/menu`; §10.1 mencatat ketiga context memakai satu resolver dengan sumber permission berbeda dan tiga hal yang sengaja tidak dilakukan; §10.3 contoh respons diganti dengan bentuk yang benar-benar dikembalikan (tanpa amplop `success/data/meta`, yang memang tidak dipakai endpoint mana pun); §16.3 seed menu sesuai migrasi beserta dua penyimpangan dari rancangan awal (Profile menunggu DEMO-0206, Audit Log hadir sebagai Keamanan). Keputusan pemilik proyek (DEMO-0409 Bagian A); review Security pending |
 | 2.8 | 2026-09-27 | §7.3: blok `support_sessions` ditambahkan sesuai implementasi (migrasi 0020) dan `tenant_notifications` tidak lagi berstatus rencana, dengan FK komposit `(tenant_id, ref_id)`; §11.1 menambah `GET /support-sessions` sisi tenant beserta batasnya (tanpa teks alasan, tanpa aksi); §12.1 mencatat banner mode support permanen dan hilangnya tombol keluar/pemindah tenant di mode itu. Keputusan pemilik proyek (slice 14, DEMO-0312); review Security pending |

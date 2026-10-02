@@ -1,4 +1,9 @@
-import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { UnitOfWork } from '../database/unit-of-work.js';
 import { AuditService } from '../auth/audit.service.js';
@@ -53,6 +58,20 @@ export interface HasilProvisioning {
 }
 
 const SLUG = /^[a-z0-9](?:[a-z0-9-]{1,61}[a-z0-9])?$/;
+
+/**
+ * Transisi status yang boleh dilakukan platform (D-47). Hanya suspend dan reactivate:
+ *
+ *   ACTIVE    -> SUSPENDED
+ *   SUSPENDED -> ACTIVE
+ *
+ * PROVISIONING -> ACTIVE milik provisioning sendiri (satu transaksi, bukan endpoint
+ * ini). ARCHIVED, CLOSING, dan PURGED menunggu keputusan retensi data: CHECK tabel
+ * bahkan belum mengenal CLOSING maupun PURGED, dan transisi ke status yang tidak
+ * dapat dibatalkan tidak dibuat sebelum aturannya ada.
+ */
+const TRANSISI: Record<string, string> = { ACTIVE: 'SUSPENDED', SUSPENDED: 'ACTIVE' };
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 @Injectable()
 export class TenantProvisioningService {
@@ -201,5 +220,65 @@ export class TenantProvisioningService {
     }
 
     return { tenantId, slug, name, status: 'ACTIVE', ...hasil };
+  }
+
+  /**
+   * Suspend atau aktifkan kembali sebuah tenant.
+   *
+   * Yang membuat suspend BERARTI bukan baris ini, melainkan F-21: sejak migrasi 0024
+   * session TENANT hanya hidup bila tenant-nya ACTIVE, sehingga setiap anggota yang
+   * sedang masuk kehilangan akses pada request berikutnya. Login dan pemilihan tenant
+   * sudah menolak tenant non-ACTIVE sejak awal (list_login_contexts, F-22).
+   *
+   * Session anggota TIDAK dicabut di sini. Mencabutnya dari context platform berarti
+   * menulis data tenant tanpa break-glass (ADR-003); akibatnya, reactivate
+   * menghidupkan kembali session yang belum kedaluwarsa - dicatat sebagai D-55.
+   */
+  async changeStatus(
+    tenantId: string,
+    target: unknown,
+    actorUserId: string,
+    actorSessionId: string,
+  ): Promise<{ tenantId: string; status: string; previousStatus: string }> {
+    if (!UUID_RE.test(tenantId)) throw new BadRequestException('id tenant harus UUID');
+    if (target !== 'ACTIVE' && target !== 'SUSPENDED') {
+      throw new BadRequestException('status hanya boleh ACTIVE atau SUSPENDED');
+    }
+
+    const sebelum = await this.uow.withPlatform(async (tx) => {
+      // FOR UPDATE: dua permintaan bersamaan atas tenant yang sama tidak boleh sama-sama
+      // membaca status lama lalu sama-sama menulis audit transisi yang sama.
+      const rows = await tx.query<{ status: string }>(
+        'SELECT status FROM tenants WHERE id = $1 FOR UPDATE',
+        [tenantId],
+      );
+      if (rows.length === 0) throw new NotFoundException('tenant tidak ditemukan');
+      const dari = rows[0].status;
+      if (TRANSISI[dari] !== target) {
+        throw new ConflictException(`tenant berstatus ${dari}; tidak dapat diubah menjadi ${target}`);
+      }
+      await tx.query('UPDATE tenants SET status = $2, updated_at = now() WHERE id = $1', [
+        tenantId,
+        target,
+      ]);
+      return dari;
+    });
+
+    // Dua baris, seperti provisioning: platform mencatat tindakannya, dan tenant dapat
+    // melihat bahwa statusnya diubah dari luar dirinya.
+    for (const tenantIdAudit of [null, tenantId]) {
+      await this.audit.record({
+        eventType: 'tenant.status_changed',
+        outcome: 'SUCCESS',
+        tenantId: tenantIdAudit,
+        actorUserId,
+        actorSessionId,
+        subjectType: 'tenant',
+        subjectId: tenantId,
+        detail: { from: sebelum, to: target },
+      });
+    }
+
+    return { tenantId, status: target, previousStatus: sebelum };
   }
 }

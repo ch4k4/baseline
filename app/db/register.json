@@ -99,7 +99,7 @@
     {
       "id": "F-21",
       "signature": "auth.find_session(p_session_id uuid)",
-      "note": "pre-context: baris session untuk verifikasi setiap request"
+      "note": "pre-context: baris session untuk verifikasi setiap request; session TENANT hanya bila membership dan tenant ACTIVE"
     },
     {
       "id": "F-22",

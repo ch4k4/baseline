@@ -296,7 +296,7 @@ lewat F-27, owner pertama lewat F-28 - satu transaksi.
 
 | # | Utang | Akibatnya sekarang | Ditagih |
 |---|---|---|---|
-| D-47 | **`PATCH /platform/tenants/:id/status` belum ada.** Policy databasenya sudah dipasang (migrasi 0023), tetapi endpoint, aturan transisi status, penolakan `PURGED`, dan audit `tenant.status_changed` belum. | Tenant tidak dapat disuspend/diaktifkan kembali dari konsol platform. Skenario demo 6 butir 2 (suspend Tenant Beta) karena itu belum dapat dijalankan penuh. Policy yang ada TANPA endpoint bukan celah - tidak ada jalan memanggilnya - tetapi ia hak yang menganggur, dan hak menganggur adalah hal yang paling mudah terlupa saat review. | Bersama konsol platform |
+| ~~D-47~~ | ~~`PATCH /platform/tenants/:id/status` belum ada~~ | **LUNAS 2026-10-02** — endpoint, transisi `ACTIVE ↔ SUSPENDED`, dan audit `tenant.status_changed` dua sisi; yang membuatnya berarti adalah F-21 (migrasi 0024), yang kini menolak session tenant non-`ACTIVE`. `PURGED`/`ARCHIVED` tetap belum ada (CHECK tabel bahkan belum mengenal `PURGED`). Dibuktikan `api/test/tenant-status.test.ts` | selesai |
 | D-48 | **Provisioning tidak idempotent dan tidak dapat dilanjutkan.** ADR-001 §3.6 menuntut provisioning idempotent; yang ada sekarang adalah satu transaksi yang gagal seluruhnya atau berhasil seluruhnya. | Kegagalan berarti mengulang dari awal - dan itu AMAN (tidak ada tenant tertinggal), tetapi bukan yang dituntut ADR. Idempotensi baru diperlukan bila provisioning kelak menyentuh hal di luar transaksi database (mis. object storage atau layanan lain), dan saat itu ia harus dirancang, bukan ditambal. | Sebelum provisioning menyentuh sistem di luar database |
 | D-49 | **Owner pertama tidak dimintai persetujuan.** Konsekuensi langsung pengecualian ADR-002 §2.3a. | Seseorang dapat menjadi owner sebuah tenant tanpa pernah menyetujuinya; yang membatasi dampaknya hanya audit di kedua sisi dan sifat sekali-pakai per tenant. Bila kelak persetujuan dituntut (Legal/DPO, atau produk yang menjual tenant ke pihak luar), jalurnya sudah ada: undangan owner dengan status tenant `PROVISIONING` sampai diterima. | Sebelum data nyata, atau saat Legal/DPO meninjau |
 | D-50 | **Kunci tenant dibuat hanya versi 1, dan tidak ada rotasi.** Sama dengan D-15, tetapi sekarang menyentuh lebih banyak tenant: setiap tenant baru lahir dengan `key_version = 1` selamanya. | Tidak ada jalan mengganti kunci tenant tanpa menulis ulang seluruh ciphertextnya. F-24/F-25 sudah mendukung banyak versi, jadi yang belum ada adalah alur rotasinya - bukan skemanya. | Bersama D-15 |
@@ -319,3 +319,22 @@ untuk mengunci semua orang.
 | D-52 | **IP klien hanya dapat dipercaya bila web berada di balik proxy.** Next mengisi `x-forwarded-for` dengan alamat socket hanya bila header itu belum ada; kiriman klien dibiarkan. `WEB_TRUSTED_PROXY_HOPS` (bawaan 0) menentukan posisi yang dipercaya. | Web yang diekspos langsung (bawaan, pengembangan) memungkinkan klien memilih IP-nya sendiri: batas per IP dapat diputari, dan kuota IP orang lain dapat dihabiskan. Batas per email tetap berlaku. | Sebelum web dapat dijangkau dari luar: pasang proxy dan setel `WEB_TRUSTED_PROXY_HOPS` |
 | D-53 | **Jalur penerimaan undangan tidak diuji untuk batas per IP.** Kodenya memakai penghitung yang sama dengan login, tetapi tes per IP hanya melewati `POST /auth/login`. | Mutasi yang menghapus pencatatan kegagalan di `invitation.service.ts` akan lolos. | Bersama tes undangan berikutnya |
 | D-54 | **Salah konfigurasi mengubah batas per IP menjadi kunci GLOBAL.** Bila API tidak menerima `x-demo-client-ip` dari proxy tepercaya - web berjalan di host lain yang alamatnya tidak ada di `DEMO_TRUSTED_PROXIES`, atau BFF versi lama yang tidak meneruskannya - semua pengguna terhitung sebagai SATU IP: alamat server web. | `DEMO_LOGIN_IP_MAX_FAILURES` kegagalan dari siapa pun mengunci login SEMUA orang selama jendela berjalan. Terbukti saat mutasi yang menghapus penerusan IP dari halaman login: 37 tes browser lain ikut gagal. Setiap deployment web di host terpisah WAJIB menyetel `DEMO_TRUSTED_PROXIES` di API ke alamat web. | Sebelum web dan API dipisah host |
+
+## Catatan suspend tenant - D-47 (2026-10-02)
+
+**Ditemukan saat merancangnya:** status tenant tidak diperiksa request mana pun. Infrastructure
+SSOT §8.6 menuntutnya, dan baris F-21 di Lampiran A menyatakan F-21 membaca membership dan
+tenant - fungsi yang terpasang sejak 0004 hanya membaca `sessions`. Endpoint suspend di atas
+keadaan itu akan menulis status yang tidak dibaca siapa pun. Migrasi 0024 memperbaiki F-21;
+untuk membership, celahnya sudah tertutup dari arah lain sejak slice 10-11 (penangguhan mencabut
+session, `effective_permissions` hanya menghitung membership `ACTIVE`).
+
+**Perubahan perilaku yang disengaja:** anggota yang membership-nya tidak `ACTIVE` kini mendapat
+401 (session ditolak), bukan 403 (session diterima, permission kosong). Slice 10 #6 diperbarui;
+jalur penangguhan lewat API sudah menghasilkan 401 sejak slice 11 karena mencabut session.
+
+| # | Utang | Akibatnya sekarang | Ditagih |
+|---|---|---|---|
+| D-55 | **Session anggota tidak dicabut saat tenant disuspend.** F-21 menolaknya selama tenant tidak `ACTIVE`, tetapi barisnya tetap hidup. Mencabutnya dari context platform berarti menulis data tenant tanpa break-glass (ADR-003); jalan yang benar adalah fungsi definer terdaftar baru. | Reactivate menghidupkan kembali setiap session yang belum kedaluwarsa. Jendelanya sempit - session tenant berumur 60 menit (bawaan `createTenantSession`) dan refresh tidak memperpanjangnya - tetapi tidak nol. Untuk suspend karena tagihan ini tidak berbahaya; untuk suspend karena **insiden keamanan** ia salah - pengguna yang mungkin dikompromikan masuk lagi tanpa login. Dipaku `tenant-status.test.ts` #9 supaya perubahannya terlihat. | Sebelum suspend dipakai untuk insiden keamanan |
+| D-56 | **Konsol platform belum punya layar tenant.** Endpoint ada; web belum. | Skenario demo 6 butir 2 (suspend Tenant Beta dari konsol) masih harus lewat API langsung. | Bersama layar registry tenant |
+
