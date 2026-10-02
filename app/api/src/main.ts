@@ -5,6 +5,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module.js';
 import { failWithExplanation } from './database/preflight.js';
 import { loadKek } from './crypto/kek-source.js';
+import { loadJwtSecret } from './auth/jwt-secret-source.js';
 import { supportContextMiddleware } from './database/support-context.js';
 
 export async function bootstrap(port = Number(process.env.PORT ?? 3001)) {
@@ -12,6 +13,7 @@ export async function bootstrap(port = Number(process.env.PORT ?? 3001)) {
   // Nest mencetak stack trace merahnya sendiri dan pesan yang menyebut obatnya
   // tenggelam di bawahnya.
   loadKek();
+  loadJwtSecret();
   const app = await NestFactory.create(AppModule, { logger: ['error', 'warn'] });
 
   // Wadah per permintaan untuk penanda sesi support (DEMO-0312). Dipasang sebagai

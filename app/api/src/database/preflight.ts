@@ -75,7 +75,12 @@ export function failWithExplanation(error: unknown): never {
   // Kesalahan kunci membawa penjelasannya sendiri (lihat src/crypto). Dicetak
   // tanpa stack trace: pesannya sudah menyebut obatnya.
   const name = (error as Error)?.name;
-  if (name === 'KekMissingError' || name === 'KekMismatchError' || name === 'KeyMissingError') {
+  if (
+    name === 'KekMissingError' ||
+    name === 'KekMismatchError' ||
+    name === 'KeyMissingError' ||
+    name === 'JwtSecretMissingError'
+  ) {
     console.error('\n' + (error as Error).message + '\n');
     process.exit(2);
   }
