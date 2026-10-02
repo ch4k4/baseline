@@ -108,25 +108,32 @@ before(async () => {
 });
 
 after(async () => {
-  if (db) {
-    // Sesi support yang mungkin tertinggal dibersihkan lebih dulu (arah FK).
-    await db.query('DELETE FROM tenant_notifications');
-    await db.query('DELETE FROM support_sessions');
-    // Menu yang dibuat tes dibersihkan, DAN kebersihannya dibuktikan: menus adalah
-    // keadaan bersama, dan tes yang meninggalkan jejak di keadaan bersama membuat
-    // tes lain lulus atau gagal karena sebab yang tidak ada di dalamnya.
-    await db.query('DELETE FROM menu_permissions WHERE tenant_id IS NOT NULL');
-    await db.query('DELETE FROM menus WHERE tenant_id IS NOT NULL');
-    const { rows } = await db.query<{ n: number }>(
-      'SELECT count(*)::int AS n FROM menus WHERE tenant_id IS NOT NULL',
-    );
-    assert.equal(rows[0].n, 0, 'pembersihan menu tes tidak tuntas');
-    // Menu seed tidak boleh ikut terhapus.
-    const { rows: seed } = await db.query<{ n: number }>('SELECT count(*)::int AS n FROM menus');
-    assert.equal(seed[0].n, 8, 'menu seed berubah jumlahnya setelah tes');
+  // try/finally: pemeriksaan di bawah yang gagal tetap menutup koneksi dan server.
+  // Tanpanya, assert yang gagal melompati db.end() dan app.close(), dan proses tes
+  // MENGGANTUNG alih-alih gagal - ditemukan saat menu platform-tenants (0025)
+  // menaikkan jumlah menu seed.
+  try {
+    if (db) {
+      // Sesi support yang mungkin tertinggal dibersihkan lebih dulu (arah FK).
+      await db.query('DELETE FROM tenant_notifications');
+      await db.query('DELETE FROM support_sessions');
+      // Menu yang dibuat tes dibersihkan, DAN kebersihannya dibuktikan: menus adalah
+      // keadaan bersama, dan tes yang meninggalkan jejak di keadaan bersama membuat
+      // tes lain lulus atau gagal karena sebab yang tidak ada di dalamnya.
+      await db.query('DELETE FROM menu_permissions WHERE tenant_id IS NOT NULL');
+      await db.query('DELETE FROM menus WHERE tenant_id IS NOT NULL');
+      const { rows } = await db.query<{ n: number }>(
+        'SELECT count(*)::int AS n FROM menus WHERE tenant_id IS NOT NULL',
+      );
+      assert.equal(rows[0].n, 0, 'pembersihan menu tes tidak tuntas');
+      // Menu seed tidak boleh ikut terhapus: 6 tenant (0021) + 3 platform (0021, 0025).
+      const { rows: seed } = await db.query<{ n: number }>('SELECT count(*)::int AS n FROM menus');
+      assert.equal(seed[0].n, 9, 'menu seed berubah jumlahnya setelah tes');
+    }
+  } finally {
+    await db?.end();
+    await app?.close();
   }
-  await db?.end();
-  await app?.close();
 });
 
 describe('slice 15 - menu sebagai data dan resolver menu efektif', () => {
@@ -239,7 +246,8 @@ describe('slice 15 - menu sebagai data dan resolver menu efektif', () => {
 
   test('4. context platform mendapat navigasi konsol, bukan navigasi tenant', async () => {
     const m = await menu(platform);
-    assert.equal(bentuk(m), 'platform-admins,platform-support');
+    // platform-tenants (urutan 10) sejak migrasi 0025, D-56.
+    assert.equal(bentuk(m), 'platform-tenants,platform-admins,platform-support');
 
     // Dan sebaliknya: session tenant tidak pernah melihat menu konsol platform.
     const tenant = JSON.stringify(await menu(ownerAlpha));

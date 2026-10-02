@@ -276,6 +276,29 @@ export function cabutAdminPlatform(token: string, id: string) {
   });
 }
 
+// ---------------------------------------------------------------- registry tenant (D-56)
+
+export interface TenantPlatform {
+  id: string;
+  slug: string;
+  name: string;
+  status: 'PROVISIONING' | 'ACTIVE' | 'SUSPENDED' | 'ARCHIVED' | string;
+  created_at: string;
+}
+
+export function daftarTenantPlatform(token: string) {
+  return panggil<{ tenants: TenantPlatform[] }>(token, '/api/v1/platform/tenants');
+}
+
+/** Suspend atau aktifkan kembali (D-47). Transisi yang tidak sah dijawab 409 oleh API. */
+export function ubahStatusTenant(token: string, id: string, status: 'ACTIVE' | 'SUSPENDED') {
+  return panggil<{ tenantId: string; status: string; previousStatus: string }>(
+    token,
+    `/api/v1/platform/tenants/${encodeURIComponent(id)}/status`,
+    { method: 'PATCH', body: JSON.stringify({ status }) },
+  );
+}
+
 // ---------------------------------------------------------------- menu (slice 15)
 
 /**

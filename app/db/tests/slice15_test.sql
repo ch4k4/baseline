@@ -172,13 +172,14 @@ BEGIN
   PERFORM set_config('app.context_kind', 'platform', true);
 
   SELECT array_agg(code ORDER BY code) INTO kode FROM menus;
-  IF kode IS DISTINCT FROM ARRAY['platform-admins','platform-support'] THEN
+  -- platform-tenants sejak migrasi 0025 (D-56).
+  IF kode IS DISTINCT FROM ARRAY['platform-admins','platform-support','platform-tenants'] THEN
     RAISE EXCEPTION 'KASUS 5 GAGAL: navigasi platform berisi %', kode;
   END IF;
 
   SELECT count(*) INTO n FROM menu_permissions;
-  IF n IS DISTINCT FROM 2 THEN
-    RAISE EXCEPTION 'KASUS 5 GAGAL: pemetaan permission platform % baris (harus 2)', n;
+  IF n IS DISTINCT FROM 3 THEN
+    RAISE EXCEPTION 'KASUS 5 GAGAL: pemetaan permission platform % baris (harus 3)', n;
   END IF;
 
   -- ---------------------------------------------------------------- KASUS 6

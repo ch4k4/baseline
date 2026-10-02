@@ -158,7 +158,8 @@ test.describe('slice 15 - navigasi dari backend', () => {
 
     const nav = page.getByTestId('nav-platform');
     const teks = (await nav.innerText()).split('\n').map((s) => s.trim()).filter(Boolean);
-    expect(teks).toEqual(['Admin platform', 'Sesi dukungan']);
+    // 'Tenant' (urutan 10) sejak migrasi 0025, D-56.
+    expect(teks).toEqual(['Tenant', 'Admin platform', 'Sesi dukungan']);
 
     // Tidak ada sisa navigasi tenant di konsol platform.
     await expect(page.getByTestId('nav-utama')).toHaveCount(0);

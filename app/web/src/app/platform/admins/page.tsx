@@ -19,8 +19,8 @@ export const dynamic = 'force-dynamic';
  * mana pun (ADR-003 sec.2.1). Memakai kerangka yang sama akan membuat dua tempat
  * yang berbeda hak terlihat seperti satu tempat.
  *
- * Yang belum ada di sini dan memang belum dijanjikan: registry tenant dan audit
- * platform (DEMO-0409). Sesi dukungan ada di halaman tersendiri sejak DEMO-0312.
+ * Registry tenant ada di halaman tersendiri sejak D-56, dan sesi dukungan sejak
+ * DEMO-0312. Audit platform (DEMO-0409) belum ada.
  */
 export default async function PlatformAdminsPage({
   searchParams,
